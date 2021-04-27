@@ -6,7 +6,7 @@ from shutil import rmtree
 pardir = os.path.realpath(os.path.dirname(__file__))
 
 
-def get_next_version(string):
+def get_next_version(string: str):
 	new = str(int(string.replace(".", "")) + 1)
 	new = "0"*(3-len(new)) + new
 	return new[0] + "." + new[1] + "." + new[2]
@@ -27,7 +27,7 @@ with open(os.path.join(pardir, "setup.py"), "r") as orig:
 
 os.chdir(pardir)
 os.system("python setup.py sdist bdist_wheel")
-_ = os.system("twine upload dist/*")
+_ = os.system("twine upload dist/* --verbose")
 rmtree(os.path.join(pardir, "build"))
 rmtree(os.path.join(pardir, "dist"))
 rmtree(os.path.join(pardir, f"{module}.egg-info"))
