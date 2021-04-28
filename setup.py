@@ -7,8 +7,8 @@ with open("requirements.txt") as f:
     reqs = f.read().strip().split("\n")
 
 setuptools.setup(
-    name="pyml",
-    version="0.0.0",
+    name="tensornn",
+    version="0.0.1",
     author="Arjun Sahlot",
     author_email="iarjun.sahlot@gmail.com",
     description="Machine learning library made from scratch",
@@ -17,7 +17,7 @@ setuptools.setup(
     license="GNU GPL v3",
     url="https://github.com/ArjunSahlot/",
     keywords=["Machine Learning"],
-    py_modules=["pyml"],
+    py_modules=["tensornn"],
     packages=setuptools.find_packages(),
     install_requires=reqs,
     python_requires=">=3",
