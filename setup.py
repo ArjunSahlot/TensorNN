@@ -15,7 +15,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="GNU GPL v3",
-    url="https://github.com/ArjunSahlot/",
+    url="https://github.com/ArjunSahlot/tensornn",
     keywords=["Machine Learning"],
     py_modules=["tensornn"],
     packages=setuptools.find_packages(),
