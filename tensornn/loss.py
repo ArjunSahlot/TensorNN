@@ -1,3 +1,9 @@
+"""
+This file contains the loss functions used in TensorNN. Loss functions are
+ways your neural network calculates how off its calculations are. Then this
+information is used to improve/train it.
+"""
+
 #
 #  TensorNN
 #  Python machine learning library/framework made from scratch.
@@ -16,5 +22,3 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
-from .learning import *

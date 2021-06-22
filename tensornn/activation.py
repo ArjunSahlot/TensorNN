@@ -1,3 +1,9 @@
+"""
+This file contains the activation functions of TensorNN. Activation
+functions modify their input to create non-linearity in the network.
+This allows your network to handle more complex problems.
+"""
+
 #
 #  TensorNN
 #  Python machine learning library/framework made from scratch.
@@ -16,5 +22,3 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
-from .learning import *

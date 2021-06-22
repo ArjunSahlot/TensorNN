@@ -1,3 +1,11 @@
+"""
+This file contains the Tensor class for TensorNN. Essentially, it is
+just a class which does matrix operations for N-dimensional arrays.
+Currently we extend off of numpy's ndarray class since it is efficient
+and has a bunch of useful operations. If needed, we can add additional
+functionality to our extended class such as new methods.
+"""
+
 #
 #  TensorNN
 #  Python machine learning library/framework made from scratch.
@@ -17,4 +25,8 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from .learning import *
+import numpy as np
+
+
+class Tensor(np.ndarray):
+    pass

@@ -1,10 +1,11 @@
 import setuptools
 
-with open("README.md") as f:
+with open("./README.md") as f:
     long_description = f.read()
 
-with open("requirements.txt") as f:
+with open("./requirements.txt") as f:
     reqs = f.read().strip().split("\n")
+
 
 setuptools.setup(
     name="tensornn",
