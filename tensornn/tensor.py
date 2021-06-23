@@ -29,4 +29,9 @@ import numpy as np
 
 
 class Tensor(np.ndarray):
-    pass
+    def __new__(cls, input_array):
+        return np.asarray(input_array).view(cls)
+
+
+Tensor.tmp_str = Tensor.__str__
+Tensor.__str__ = lambda self: "TensorNN.Tensor(" + self.tmp_str() + ")"
