@@ -24,5 +24,6 @@ Optimizers enable us to improve our neural network efficiently.
 
 import numpy as np
 
+
 class Optimizer:
     pass
