@@ -29,9 +29,27 @@ import numpy as np
 
 
 class Tensor(np.ndarray):
-    def __new__(cls, input_array):
+    def __new__(cls, input_array=[]):
         return np.asarray(input_array).view(cls)
 
 
+# Add TensorNN.Tensor() around the output of np.ndarray
 Tensor.tmp_str = Tensor.__str__
-Tensor.__str__ = lambda self: "TensorNN.Tensor(" + self.tmp_str() + ")"
+Tensor.__str__ = lambda self: "TensorNN.Tensor(\n    " + "    ".join(
+    self.tmp_str().splitlines(True)) + "\n)"
+
+
+def np_to_tensor(func):
+    """
+    Returns Tensor instead of np.ndarray.
+    To use:
+    np.dot = np_to_tensor(np.dot)
+    """
+    def wrapper(*args, **kwargs):
+        return Tensor(func(*args, **kwargs))
+
+    return wrapper
+
+
+for func in ("array", "dot", "zeros", "ones", "where"):
+    setattr(np, func, np_to_tensor(getattr(np, func)))

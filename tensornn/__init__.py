@@ -17,4 +17,12 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import numpy as np
+
+from .tensor import Tensor
+from . import activation
+from . import loss
+from . import layers
+from . import nn
+
 from .learning import *

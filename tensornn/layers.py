@@ -1,7 +1,6 @@
 """
-This file contains the activation functions of TensorNN. Activation
-functions modify their input to create non-linearity in the network.
-This allows your network to handle more complex problems.
+This file contains different types of layers used in neural networks.
+Layers need to be able to propagate their inputs forward.
 """
 
 #
@@ -24,8 +23,7 @@ This allows your network to handle more complex problems.
 #
 
 import numpy as np
-from .tensor import Tensor
 
 
-class Activation:
+class Layer:
     pass
