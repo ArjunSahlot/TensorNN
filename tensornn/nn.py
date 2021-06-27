@@ -1,6 +1,6 @@
 """
-This file contains neural network classes which are essentially
-collections of layers.
+This file contains the neural network class which is essentially
+a collections of layers.
 """
 
 #
@@ -23,3 +23,7 @@ collections of layers.
 #
 
 import numpy as np
+
+
+class NeuralNetwork:
+    pass

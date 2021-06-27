@@ -23,6 +23,7 @@ Layers need to be able to propagate their inputs forward.
 #
 
 import numpy as np
+from .tensor import Tensor
 
 
 class Layer:
