@@ -25,5 +25,10 @@ a collections of layers.
 import numpy as np
 
 
+__all__ = [
+    "NeuralNetwork",
+]
+
+
 class NeuralNetwork:
     pass
