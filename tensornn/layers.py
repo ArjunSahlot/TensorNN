@@ -26,5 +26,24 @@ import numpy as np
 from .tensor import Tensor
 
 
+__all__ = [
+    "Dense",
+]
+
+
 class Layer:
-    pass
+    def __init__(self, inputs: Tensor, neurons: Tensor, zero_biases: bool = True) -> None:
+        self.weights: Tensor = np.random.randn(inputs, neurons)
+        if zero_biases:
+            self.biases: Tensor = np.zeros((1, neurons))
+        else:
+            self.biases: Tensor = np.random.randn(1, neurons)
+
+    def forward(self, inputs: Tensor):
+        raise NotImplementedError(
+            f"TensorNN.{self.__class__.__name__} is not currently implemented")
+
+
+class Dense(Layer):
+    def forward(self, inputs):
+        return inputs @ self.weights + self.biases
