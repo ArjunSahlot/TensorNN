@@ -28,6 +28,11 @@ functionality to our extended class such as new methods.
 import numpy as np
 
 
+__all__ = [
+    "Tensor",
+]
+
+
 class Tensor(np.ndarray):
     def __new__(cls, input_array=[]):
         return np.asarray(input_array).view(cls)
@@ -51,5 +56,10 @@ def np_to_tensor(func):
     return wrapper
 
 
+# np.*
 for func in ("array", "dot", "zeros", "ones", "where"):
     setattr(np, func, np_to_tensor(getattr(np, func)))
+
+# np.random.*
+for func in ("randn",):
+    setattr(np.random, func, np_to_tensor(getattr(np.random, func)))
