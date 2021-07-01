@@ -1,3 +1,7 @@
+"""
+This file contains useful variables that are used in TensorNN.
+"""
+
 #
 #  TensorNN
 #  Python machine learning library/framework made from scratch.
@@ -17,23 +21,30 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from .tensor import Tensor
-from . import activation
-from . import loss
-from . import layers
-from . import nn
-
-from . import learning
-
-from .utils import source
-
-
 __all__ = [
-    "Tensor",
-    "activation",
-    "loss",
-    "layers",
-    "nn",
-    "learning",
-    "source"
+    "source",
 ]
+
+
+def source(obj, output=None):
+    """
+    Get the source code of a TensorNN object.
+    """
+    import inspect
+
+    try:
+        rv = f"In file: {inspect.getsourcefile(obj)}\n\n{inspect.getsource(obj)}"
+    except Exception:
+        rv = f"No source available for {obj.__name__}"
+    finally:
+        if output is None:
+            return rv
+
+        excep = False
+        try:
+            print(rv, file=output)
+        except Exception:
+            excep = True
+
+        if excep:
+            raise FileNotFoundError(f"{output} is not a valid output file.")
