@@ -28,9 +28,13 @@ from .tensor import Tensor
 
 
 __all__ = [
-
+    "CategoricalCrossEntropy"
 ]
 
 
 class Loss:
+    pass
+
+
+class CategoricalCrossEntropy(Loss):
     pass

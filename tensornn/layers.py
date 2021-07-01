@@ -39,7 +39,7 @@ class Layer:
         else:
             self.biases: Tensor = np.random.randn(1, neurons)
 
-    def forward(self, inputs: Tensor):
+    def forward(self, inputs: Tensor) -> Tensor:
         raise NotImplementedError(
             f"TensorNN.{self.__class__.__name__} is not currently implemented")
 

@@ -57,7 +57,7 @@ def np_to_tensor(func):
 
 
 # np.*
-for func in ("array", "dot", "zeros", "ones", "where"):
+for func in ("array", "dot", "zeros", "ones", "where", "max", "min",):
     setattr(np, func, np_to_tensor(getattr(np, func)))
 
 # np.random.*

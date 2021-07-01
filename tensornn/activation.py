@@ -1,7 +1,8 @@
 """
 This file contains the activation functions of TensorNN. Activation
 functions modify their input to create non-linearity in the network.
-This allows your network to handle more complex problems.
+This allows your network to handle more complex problems. They are
+very similar to a layer.
 """
 
 #
@@ -28,9 +29,14 @@ from .tensor import Tensor
 
 
 __all__ = [
-
+    "ReLU",
 ]
 
 
 class Activation:
     pass
+
+
+class ReLU(Activation):
+    def forward(self, inputs):
+        return

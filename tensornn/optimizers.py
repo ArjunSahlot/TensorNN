@@ -25,10 +25,14 @@ Optimizers enable us to improve our neural network efficiently.
 import numpy as np
 from .tensor import Tensor
 
-__all = [
-
+__all__ = [
+    "Adam"
 ]
 
 
 class Optimizer:
+    pass
+
+
+class Adam(Optimizer):
     pass
