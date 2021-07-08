@@ -22,6 +22,11 @@ This file contains errors the TensorNN might raise.
 #
 
 
+__all__ = [
+    "NotImplemented",
+]
+
+
 class NotImplemented(NotImplementedError):
     def __init__(self, file, obj):
         self.message = f"TensorNN.{file}.{obj.__class__.__name__} is not currently implemented"

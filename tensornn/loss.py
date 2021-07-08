@@ -46,10 +46,7 @@ class CategoricalCrossEntropy(Loss):
         clipped = np.clip(pred, 1e-10, 1-1e-10)
 
         if len(actual.shape) == 2:
-            print(actual := np.argmax(actual, axis=1))
-        single_pred = clipped[..., actual]
-        print(single_pred)
+            actual = np.argmax(actual, axis=1)
 
-
-CategoricalCrossEntropy().calculate(
-    Tensor([[.1, .2, .7], [.2, .3, .5]]), Tensor([1, 2]))
+        true_pred = clipped[range(len(pred)), actual]
+        return -np.log(true_pred)

@@ -57,7 +57,7 @@ def return_tensor(func):
 
 
 # np.*
-for func in ("array", "dot", "zeros", "ones", "where", "exp", "mean", "clip", "argmax"):
+for func in ("array", "dot", "zeros", "ones", "where", "exp", "mean", "clip", "argmax", "log"):
     setattr(np, func, return_tensor(getattr(np, func)))
 
 # np.random.*
