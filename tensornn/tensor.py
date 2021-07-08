@@ -39,16 +39,16 @@ class Tensor(np.ndarray):
 
 
 # Add TensorNN.Tensor() around the output of np.ndarray
-Tensor.tmp_str = Tensor.__str__
+Tensor.__tmp_str = Tensor.__str__
 Tensor.__str__ = lambda self: "TensorNN.Tensor(\n    " + "    ".join(
-    self.tmp_str().splitlines(True)) + "\n)"
+    self.__tmp_str().splitlines(True)) + "\n)"
 
 
-def np_to_tensor(func):
+def return_tensor(func):
     """
     Returns Tensor instead of np.ndarray.
     To use:
-    np.dot = np_to_tensor(np.dot)
+    np.dot = return_tensor(np.dot)
     """
     def wrapper(*args, **kwargs):
         return Tensor(func(*args, **kwargs))
@@ -57,9 +57,9 @@ def np_to_tensor(func):
 
 
 # np.*
-for func in ("array", "dot", "zeros", "ones", "where", "max", "min",):
-    setattr(np, func, np_to_tensor(getattr(np, func)))
+for func in ("array", "dot", "zeros", "ones", "where", "exp", "mean", "clip", "argmax"):
+    setattr(np, func, return_tensor(getattr(np, func)))
 
 # np.random.*
 for func in ("randn",):
-    setattr(np.random, func, np_to_tensor(getattr(np.random, func)))
+    setattr(np.random, func, return_tensor(getattr(np.random, func)))

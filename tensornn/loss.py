@@ -25,6 +25,7 @@ information is used to improve/train it.
 
 import numpy as np
 from .tensor import Tensor
+from .errors import NotImplemented
 
 
 __all__ = [
@@ -33,8 +34,22 @@ __all__ = [
 
 
 class Loss:
-    pass
+    def get(self, pred: Tensor, actual: Tensor) -> Tensor:
+        return np.mean(self.calculate(pred, actual))
+
+    def calculate(self, pred: Tensor, actual: Tensor) -> Tensor:
+        raise NotImplemented("loss", self)
 
 
 class CategoricalCrossEntropy(Loss):
-    pass
+    def calculate(self, pred, actual):
+        clipped = np.clip(pred, 1e-10, 1-1e-10)
+
+        if len(actual.shape) == 2:
+            print(actual := np.argmax(actual, axis=1))
+        single_pred = clipped[..., actual]
+        print(single_pred)
+
+
+CategoricalCrossEntropy().calculate(
+    Tensor([[.1, .2, .7], [.2, .3, .5]]), Tensor([1, 2]))

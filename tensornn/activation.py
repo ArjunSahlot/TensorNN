@@ -26,6 +26,7 @@ very similar to a layer.
 
 import numpy as np
 from .tensor import Tensor
+from .errors import NotImplemented
 
 
 __all__ = [
@@ -34,9 +35,16 @@ __all__ = [
 
 
 class Activation:
-    pass
+    def forward(self, inputs: Tensor) -> Tensor:
+        raise NotImplemented("activation", self)
 
 
 class ReLU(Activation):
     def forward(self, inputs):
-        return
+        return np.maximum(0, inputs)
+
+
+class Softmax(Activation):
+    def forward(self, inputs):
+        exp = np.exp(inputs-np.max(inputs, axis=1, keepdims=True))
+        return exp/np.sum(exp, axis=1, keepdims=True)

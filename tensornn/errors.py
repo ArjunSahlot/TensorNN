@@ -1,6 +1,5 @@
 """
-This file contains different types of layers used in neural networks.
-Layers need to be able to propagate their inputs forward.
+This file contains errors the TensorNN might raise.
 """
 
 #
@@ -22,28 +21,10 @@ Layers need to be able to propagate their inputs forward.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-import numpy as np
-from .tensor import Tensor
-from .errors import NotImplemented
 
+class NotImplemented(NotImplementedError):
+    def __init__(self, file, obj):
+        self.message = f"TensorNN.{file}.{obj.__class__.__name__} is not currently implemented"
 
-__all__ = [
-    "Dense",
-]
-
-
-class Layer:
-    def __init__(self, inputs: Tensor, neurons: Tensor, zero_biases: bool = True) -> None:
-        self.weights: Tensor = np.random.randn(inputs, neurons)
-        if zero_biases:
-            self.biases: Tensor = np.zeros((1, neurons))
-        else:
-            self.biases: Tensor = np.random.randn(1, neurons)
-
-    def forward(self, inputs: Tensor) -> Tensor:
-        raise NotImplemented("layers", self)
-
-
-class Dense(Layer):
-    def forward(self, inputs):
-        return inputs @ self.weights + self.biases
+    def __str__(self):
+        return self.message
