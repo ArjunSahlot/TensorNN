@@ -34,6 +34,10 @@ __all__ = [
 
 
 class Tensor(np.ndarray):
+    """
+    The tensor class. Currently functions like numpy.ndarray but with a custom print.
+    """
+
     def __new__(cls, input_array=[]):
         return np.asarray(input_array).view(cls)
 
@@ -42,24 +46,3 @@ class Tensor(np.ndarray):
 Tensor.__tmp_str = Tensor.__str__
 Tensor.__str__ = lambda self: "TensorNN.Tensor(\n    " + "    ".join(
     self.__tmp_str().splitlines(True)) + "\n)"
-
-
-def return_tensor(func):
-    """
-    Returns Tensor instead of np.ndarray.
-    To use:
-    np.dot = return_tensor(np.dot)
-    """
-    def wrapper(*args, **kwargs):
-        return Tensor(func(*args, **kwargs))
-
-    return wrapper
-
-
-# np.*
-for func in ("array", "dot", "zeros", "ones", "where", "exp", "mean", "clip", "argmax", "log"):
-    setattr(np, func, return_tensor(getattr(np, func)))
-
-# np.random.*
-for func in ("randn",):
-    setattr(np.random, func, return_tensor(getattr(np.random, func)))

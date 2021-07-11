@@ -34,19 +34,49 @@ __all__ = [
 
 
 class Loss:
-    def get(self, pred: Tensor, actual: Tensor) -> Tensor:
-        return np.mean(self.calculate(pred, actual))
+    """
+    Base loss class. All loss classes should inherit from this.
+    """
 
-    def calculate(self, pred: Tensor, actual: Tensor) -> Tensor:
+    def get(self, pred: Tensor, desired: Tensor) -> Tensor:
+        """
+        The mean of all the loss values in this batch.
+
+        :param pred: the prediction of the network
+        :param desired: the desired values which the network should have gotten close to
+        :returns: the average of calculated loss for one whole pass of the network across all batches
+        """
+
+        return np.mean(self.calculate(pred, desired))
+
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
+        """
+        Calculates the loss for one whole pass of the network.
+
+        :param pred: the prediction of the network
+        :param desired: the desired values which the network should have gotten close to
+        :returns: the calculated loss for one whole pass of the network
+        """
+
         raise NotImplemented("loss", self)
 
 
 class CategoricalCrossEntropy(Loss):
-    def calculate(self, pred, actual):
+    """
+    Despite its long name, the way the categorical cross entropy loss is calculated is simple.
+
+    Let's say our prediction (after softmax) is [0.7, 0.2, 0.1], and the
+    desired values are [1, 0, 0]. We can simply get the prediction number
+    at the index of the 1 in the desired values, that would be 0.7. Now we
+    just take the negative log of this number and we are done!
+    """
+
+    def calculate(self, pred, desired):
         clipped = np.clip(pred, 1e-10, 1-1e-10)
 
-        if len(actual.shape) == 2:
-            actual = np.argmax(actual, axis=1)
+        # If desired is an array of one hot encoded vectors
+        if len(desired.shape) == 2:
+            desired = np.argmax(desired, axis=1)
 
-        true_pred = clipped[range(len(pred)), actual]
+        true_pred = clipped[range(len(pred)), desired]
         return -np.log(true_pred)

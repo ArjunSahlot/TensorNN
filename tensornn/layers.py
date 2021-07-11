@@ -22,8 +22,11 @@ Layers need to be able to propagate their inputs forward.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from typing import Optional
 import numpy as np
+
 from .tensor import Tensor
+from .activation import Activation
 from .errors import NotImplemented
 
 
@@ -33,17 +36,52 @@ __all__ = [
 
 
 class Layer:
-    def __init__(self, inputs: Tensor, neurons: Tensor, zero_biases: bool = True) -> None:
-        self.weights: Tensor = np.random.randn(inputs, neurons)
+    """
+    Base layer class. All layer classes should inherit from this.
+    """
+
+    biases: Tensor
+
+    def __init__(
+        self,
+        num_inputs: Tensor,
+        num_neurons: Tensor,
+        activation: Optional[Activation] = None,
+        zero_biases: bool = True
+    ) -> None:
+        """
+        Initialize the layer.
+
+        :param num_inputs: the number of neurons/outputs in the previous layer
+        :param num_neurons: the number of neurons in this layer/number of outputs of this layer
+        :param activation: the activation function applied before the layer output is calculated
+        :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
+        """
+
+        self.weights: Tensor = np.random.randn(num_inputs, num_neurons)
         if zero_biases:
-            self.biases: Tensor = np.zeros((1, neurons))
+            self.biases: Tensor = np.zeros((1, num_neurons))
         else:
-            self.biases: Tensor = np.random.randn(1, neurons)
+            self.biases: Tensor = np.random.randn(1, num_neurons)
+
+        self.activation: Optional[Activation] = activation
 
     def forward(self, inputs: Tensor) -> Tensor:
+        """
+        Calculate a forwards pass of this layer.
+
+        :param inputs: outputs from the previous layer
+        :returns: the output calculated after this layer
+        """
+
         raise NotImplemented("layers", self)
 
 
 class Dense(Layer):
+    """
+    A dense layer. Each neuron is connected to all neurons in the previous layer.
+    Output is calculated by: (output of previous layer * weights) + biases.
+    """
+
     def forward(self, inputs):
         return inputs @ self.weights + self.biases
