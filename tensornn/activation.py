@@ -31,6 +31,7 @@ from .errors import NotImplemented
 
 __all__ = [
     "ReLU",
+    "Softmax",
 ]
 
 

@@ -38,7 +38,7 @@ class Loss:
     Base loss class. All loss classes should inherit from this.
     """
 
-    def get(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         The mean of all the loss values in this batch.
 
@@ -47,9 +47,9 @@ class Loss:
         :returns: the average of calculated loss for one whole pass of the network across all batches
         """
 
-        return np.mean(self.calculate(pred, desired))
+        return np.mean(self._calculate(pred, desired))
 
-    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def _calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         Calculates the loss for one whole pass of the network.
 
@@ -65,15 +65,15 @@ class CategoricalCrossEntropy(Loss):
     """
     Despite its long name, the way the categorical cross entropy loss is calculated is simple.
 
-    Let's say our prediction (after softmax) is [0.7, 0.2, 0.1], and the
-    desired values are [1, 0, 0]. We can simply get the prediction number
-    at the index of the 1 in the desired values, that would be 0.7. Now we
-    just take the negative log of this number and we are done!
+    Let's say our prediction (after softmax) is [0.7, 0.2, 0.1], and the desired values are
+    [1, 0, 0]. We can simply get the prediction number at the index of the 1 in the desired
+    values. 1 is at index 0 so we look at index 0 of our prediction which would be 0.7.
+    Now we just take the negative log of 0.7 and we are done!
 
     Note: log in programming is usually log base e or natural log or ln in math
     """
 
-    def calculate(self, pred, desired):
+    def _calculate(self, pred, desired):
         clipped = np.clip(pred, 1e-10, 1-1e-10)
 
         # If desired is an array of one hot encoded vectors

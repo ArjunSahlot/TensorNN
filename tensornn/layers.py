@@ -68,7 +68,17 @@ class Layer:
 
     def forward(self, inputs: Tensor) -> Tensor:
         """
-        Calculate a forwards pass of this layer.
+        Calculate a forwards pass of this layer with activation.
+
+        :param inputs: outputs from the previous layer
+        :returns: the output calculated after this layer and activation
+        """
+
+        return self._forward(self.activation.forward(inputs))
+
+    def _forward(self, inputs: Tensor) -> Tensor:
+        """
+        Calculate a forwards pass of this layer, without activation.
 
         :param inputs: outputs from the previous layer
         :returns: the output calculated after this layer
@@ -83,5 +93,6 @@ class Dense(Layer):
     Output is calculated by: (output of previous layer * weights) + biases.
     """
 
-    def forward(self, inputs):
+    def _forward(self, inputs):
+        # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
         return inputs @ self.weights + self.biases
