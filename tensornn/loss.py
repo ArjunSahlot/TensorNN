@@ -69,6 +69,8 @@ class CategoricalCrossEntropy(Loss):
     desired values are [1, 0, 0]. We can simply get the prediction number
     at the index of the 1 in the desired values, that would be 0.7. Now we
     just take the negative log of this number and we are done!
+
+    Note: log in programming is usually log base e or natural log or ln in math
     """
 
     def calculate(self, pred, desired):
