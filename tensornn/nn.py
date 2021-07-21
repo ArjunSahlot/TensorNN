@@ -22,7 +22,10 @@ a collections of layers.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from typing import Sequence
 import numpy as np
+
+from .layers import Layer
 
 
 __all__ = [
@@ -31,4 +34,11 @@ __all__ = [
 
 
 class NeuralNetwork:
-    pass
+    """
+    Create your neural network with this class.
+    """
+
+    def __init__(self, layers: Sequence[Layer]) -> None:
+        self.layers = layers
+
+    # def

@@ -74,7 +74,12 @@ class Layer:
         :returns: the output calculated after this layer and activation
         """
 
-        return self._forward(self.activation.forward(inputs))
+        if self.activation is not None:
+            activated = self.activation.forward(inputs)
+        else:
+            activated = inputs
+
+        return self._forward(activated)
 
     def _forward(self, inputs: Tensor) -> Tensor:
         """

@@ -24,6 +24,7 @@ information is used to improve/train it.
 #
 
 import numpy as np
+
 from .tensor import Tensor
 from .errors import NotImplemented
 
