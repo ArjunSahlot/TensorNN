@@ -10,22 +10,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: adsf
-        run: echo "${{ github.repository }} ${{ github.workspace }} "
 
-#       - name: Setup
-#         run: pip3 install setuptools wheel twine
+      - name: Setup
+        run: pip3 install setuptools wheel twine
 
-#       - name: Build
-#         env:
-#           PYPI_VERSION: ${{ github.ref }}
-#         run: python3 setup.py bdist_wheel sdist
+      - name: Build
+        env:
+          PYPI_VERSION: ${{ github.ref }}
+        run: python3 setup.py bdist_wheel sdist
       
-#       - name: Upload
-#         env:
-#           TWINE_USERNAME: __token__
-#           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-#         run: twine upload dist/*
+      - name: Upload
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
       
-#       - name: Clean up
-#         run: rm -rf dist build tensornn.egg-info
+      - name: Clean up
+        run: rm -rf dist build tensornn.egg-info
