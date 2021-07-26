@@ -1,15 +1,20 @@
+import os
+from os.path import join as path_join
 import setuptools
 
-with open("./README.md") as f:
+PARDIR = os.path.dirname(os.path.realpath(os.path.dirname(__file__)))
+TNN = path_join(PARDIR, "tensornn")
+
+with open(path_join(PARDIR, "README.md")) as f:
     long_description = f.read()
 
-with open("./requirements.txt") as f:
+with open(path_join(PARDIR, "requirements.txt")) as f:
     reqs = f.read().strip().split("\n")
 
 
 setuptools.setup(
     name="tensornn",
-    version="0.0.1",
+    version=print(os.getenv("PYPI_VERSION")),
     author="Arjun Sahlot",
     author_email="iarjun.sahlot@gmail.com",
     description="Machine learning library made from scratch",
