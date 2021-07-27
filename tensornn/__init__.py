@@ -23,7 +23,7 @@ from . import loss
 from . import layers
 from . import nn
 
-from . import learning
+from . import create
 
 from .utils import source
 
@@ -34,6 +34,6 @@ __all__ = [
     "loss",
     "layers",
     "nn",
-    "learning",
+    "create",
     "source"
 ]
