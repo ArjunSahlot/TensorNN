@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 
-class Activation:
+class BaseActivation:
     """
     Base activation class. All activation classes should inherit from this.
     """
@@ -52,7 +52,7 @@ class Activation:
         raise NotImplemented("activation", self)
 
 
-class ReLU(Activation):
+class ReLU(BaseActivation):
     """
     The rectified linear unit activation function is one of the simplest activation function.
 
@@ -64,7 +64,7 @@ class ReLU(Activation):
         return np.maximum(0, inputs)
 
 
-class Softmax(Activation):
+class Softmax(BaseActivation):
     """
     The softmax activation function is most commonly used in the output layer.
     The goal of softmax is to convert the predicted values of the network into percentages that add up to 1.

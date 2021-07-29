@@ -25,10 +25,10 @@ a collections of layers.
 from typing import List, Optional, Sequence
 import numpy as np
 
-from .layers import Layer
+from .layers import BaseLayer
 from .tensor import Tensor
-from .optimizers import Optimizer, Adam
-from .loss import Loss, CategoricalCrossEntropy
+from .optimizers import BaseOptimizer, Adam
+from .loss import BaseLoss, CategoricalCrossEntropy
 
 
 __all__ = [
@@ -43,9 +43,9 @@ class NeuralNetwork:
 
     def __init__(
         self,
-        layers: Optional[Sequence[Layer]] = [],
-        loss: Optional[Loss] = CategoricalCrossEntropy(),
-        optimizer: Optional[Optimizer] = Adam()
+        layers: Optional[Sequence[BaseLayer]] = [],
+        loss: Optional[BaseLoss] = CategoricalCrossEntropy(),
+        optimizer: Optional[BaseOptimizer] = Adam()
     ) -> None:
         """
         Initialize the network
@@ -54,11 +54,11 @@ class NeuralNetwork:
         :param loss: type of loss this network uses to calculate loss
         """
 
-        self.layers: List[Layer] = list(layers)
+        self.layers: List[BaseLayer] = list(layers)
         self.loss = loss
         self.optimizer = optimizer
 
-    def add(self, layer: Layer) -> None:
+    def add(self, layer: BaseLayer) -> None:
         """
         Add another layer to the network. This is the same as initializing
         the network with this layer.

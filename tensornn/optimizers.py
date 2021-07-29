@@ -26,14 +26,15 @@ import numpy as np
 
 from .tensor import Tensor
 
+
 __all__ = [
     "Adam"
 ]
 
 
-class Optimizer:
+class BaseOptimizer:
     pass
 
 
-class Adam(Optimizer):
+class Adam(BaseOptimizer):
     pass

@@ -26,7 +26,7 @@ from typing import Optional
 import numpy as np
 
 from .tensor import Tensor
-from .activation import Activation
+from .activation import BaseActivation
 from .errors import NotImplemented
 
 
@@ -35,7 +35,7 @@ __all__ = [
 ]
 
 
-class Layer:
+class BaseLayer:
     """
     Base layer class. All layer classes should inherit from this.
     """
@@ -44,9 +44,9 @@ class Layer:
 
     def __init__(
         self,
-        num_inputs: Tensor,
-        num_neurons: Tensor,
-        activation: Optional[Activation] = None,
+        num_inputs: int,
+        num_neurons: int,
+        activation: Optional[BaseActivation] = None,
         zero_biases: bool = True
     ) -> None:
         """
@@ -64,7 +64,7 @@ class Layer:
         else:
             self.biases: Tensor = np.random.randn(1, num_neurons)
 
-        self.activation: Optional[Activation] = activation
+        self.activation: Optional[BaseActivation] = activation
 
     def forward(self, inputs: Tensor) -> Tensor:
         """
@@ -92,7 +92,7 @@ class Layer:
         raise NotImplemented("layers", self)
 
 
-class Dense(Layer):
+class Dense(BaseLayer):
     """
     A dense layer. Each neuron is connected to all neurons in the previous layer.
     Output is calculated by: (output of previous layer * weights) + biases.

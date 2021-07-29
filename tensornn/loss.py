@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 
-class Loss:
+class BaseLoss:
     """
     Base loss class. All loss classes should inherit from this.
     """
@@ -62,7 +62,7 @@ class Loss:
         raise NotImplemented("loss", self)
 
 
-class CategoricalCrossEntropy(Loss):
+class CategoricalCrossEntropy(BaseLoss):
     """
     Despite its long name, the way the categorical cross entropy loss is calculated is simple.
 

@@ -21,12 +21,15 @@ This file contains useful variables that are used in TensorNN.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import sys
+
+
 __all__ = [
     "source",
 ]
 
 
-def source(obj, output=None):
+def source(obj, output=sys.stdout):
     """
     Get the source code of a TensorNN object.
     """
@@ -36,15 +39,8 @@ def source(obj, output=None):
         rv = f"In file: {inspect.getsourcefile(obj)}\n\n{inspect.getsource(obj)}"
     except Exception:
         rv = f"No source available for {obj.__name__}"
-    finally:
-        if output is None:
-            return rv
 
-        excep = False
-        try:
-            print(rv, file=output)
-        except Exception:
-            excep = True
-
-        if excep:
-            raise FileNotFoundError(f"{output} is not a valid output file.")
+    if output is None:
+        return rv
+    else:
+        print(rv, file=output)
