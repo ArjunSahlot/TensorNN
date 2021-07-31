@@ -41,22 +41,26 @@ class Dog(Human):
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+import inspect
+
 
 class GuidelineMethod:
-    def __init__(self, guideline, func):
+    def __init__(self, guideline, method):
         self.__guideline = guideline
-        self.func = func
+        self.method = method
+        self.srcfile = inspect.getsourcefile(method)
+        self.src = inspect.getsource(method)
 
     @property
     def guideline(self):
         return self.__guideline
 
     def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+        return self.method(*args, **kwargs)
 
 
 def guideline_method(guideline):
-    def wrapper(func):
-        return GuidelineMethod(guideline, func)
+    def wrapper(method):
+        return GuidelineMethod(guideline, method)
 
     return wrapper

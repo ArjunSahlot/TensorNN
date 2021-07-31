@@ -28,8 +28,8 @@ __all__ = [
 
 
 class NotImplemented(NotImplementedError):
-    def __init__(self, file, obj):
-        self.message = f"TensorNN.{file}.{obj.__class__.__name__} is not currently implemented"
+    def __init__(self, file, inst):
+        self.message = f"TensorNN.{file}.{inst.__class__.__name__} is not currently implemented"
 
     def __str__(self):
         return self.message

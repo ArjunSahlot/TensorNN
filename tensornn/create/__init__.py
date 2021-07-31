@@ -26,6 +26,15 @@ from ..loss import BaseLoss
 from ..activation import BaseActivation
 from ..optimizers import BaseOptimizer
 from ..tensor import Tensor
+from ..errors import NotImplemented
+
+
+__all__ = [
+    "Layer",
+    "Loss",
+    "Activation",
+    "Optimizer"
+]
 
 
 class Layer(BaseLayer):
@@ -33,7 +42,21 @@ class Layer(BaseLayer):
     Base layer class. All custom layer classes should inherit from this.
     """
 
-    @guideline_method("")
+    recommended_methods_to_change = [
+        "forward",
+        "_forward"
+    ]
+    guideline = """
+A neural network is composed of layers. A set of inputs are moved from one layer to another.
+Each layer has its own way of calculating the output its own inputs(outputs of previous layer).
+Each layer must also need a few tweakable parameters, tweaking this parameters will allow the
+network to learn and adapt the inputs to the correct outputs.
+
+Checkout the current __init__ by using tnn.source(tnn.create.Layer.__init__). Also checkout
+the recommended methods for this class(Layer.recommended_methods_to_change) as well as their
+respective guidelines(tnn.create.Layer.forward.guideline).
+"""
+
     def __init__(
         self,
         num_inputs: int,
@@ -50,13 +73,40 @@ class Layer(BaseLayer):
         :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
         """
 
-        self.weights: Tensor = np.random.randn(num_inputs, num_neurons)
+        self.weights: Tensor = Tensor(np.random.randn(num_inputs, num_neurons))
         if zero_biases:
-            self.biases: Tensor = np.zeros((1, num_neurons))
+            self.biases: Tensor = Tensor(np.zeros((1, num_neurons)))
         else:
-            self.biases: Tensor = np.random.randn(1, num_neurons)
+            self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
 
         self.activation: Optional[Activation] = activation
+
+    @guideline_method("""""")
+    def forward(self, inputs: Tensor) -> Tensor:
+        """
+        Calculate a forwards pass of this layer with activation.
+
+        :param inputs: outputs from the previous layer
+        :returns: the output calculated after this layer and activation
+        """
+
+        if self.activation is not None:
+            activated = self.activation.forward(inputs)
+        else:
+            activated = inputs
+
+        return self._forward(activated)
+
+    @guideline_method("""""")
+    def _forward(self, inputs: Tensor) -> Tensor:
+        """
+        Calculate a forwards pass of this layer, without activation.
+
+        :param inputs: outputs from the previous layer
+        :returns: the output calculated after this layer
+        """
+
+        raise NotImplemented("create", self)
 
 
 class Loss(BaseLoss):
@@ -64,6 +114,15 @@ class Loss(BaseLoss):
     Base loss class. All custom loss classes should inherit from this.
     """
 
+    recommended_methods_to_change = [
+        "_calculate"
+    ]
+    guideline = """"""
+
+    def __init__(self) -> None:
+        pass
+
+    @guideline_method("""""")
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         The mean of all the loss values in this batch.
@@ -75,6 +134,7 @@ class Loss(BaseLoss):
 
         return np.mean(self._calculate(pred, desired))
 
+    @guideline_method("""""")
     def _calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         Calculates the loss for one whole pass of the network.
@@ -84,19 +144,21 @@ class Loss(BaseLoss):
         :returns: the calculated loss for one whole pass of the network
         """
 
-        raise NotImplemented("loss", self)
-
 
 class Activation(BaseActivation):
     """
     Base activation class. All custom activation classes should inherit from this.
     """
 
-    @guideline_method("")
+    recommended_methods_to_change = [
+        "forward"
+    ]
+    guideline = """"""
+
     def __init__(self) -> None:
         pass
 
-    @guideline_method("")
+    @guideline_method("""""")
     def forward(self, inputs: Tensor) -> Tensor:
         """
         Calculate a forwards pass of this activation function.
@@ -105,14 +167,14 @@ class Activation(BaseActivation):
         :returns: the inputs after they are passed through the activation function
         """
 
-        raise NotImplemented("activation", self)
-
 
 class Optimizer(BaseOptimizer):
     """
     Base optimizer class. All custom optimizer classes should inherit from this.
     """
 
-    @guideline_method("")
+    recommended_methods_to_change = []
+    guideline = """"""
+
     def __init__(self) -> None:
         pass

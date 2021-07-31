@@ -58,11 +58,11 @@ class BaseLayer:
         :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
         """
 
-        self.weights: Tensor = np.random.randn(num_inputs, num_neurons)
+        self.weights: Tensor = Tensor(np.random.randn(num_inputs, num_neurons))
         if zero_biases:
-            self.biases: Tensor = np.zeros((1, num_neurons))
+            self.biases: Tensor = Tensor(np.zeros((1, num_neurons)))
         else:
-            self.biases: Tensor = np.random.randn(1, num_neurons)
+            self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
 
         self.activation: Optional[BaseActivation] = activation
 

@@ -23,6 +23,8 @@ This file contains useful variables that are used in TensorNN.
 
 import sys
 
+from .create.utils import GuidelineMethod
+
 
 __all__ = [
     "source",
@@ -36,7 +38,10 @@ def source(obj, output=sys.stdout):
     import inspect
 
     try:
-        rv = f"In file: {inspect.getsourcefile(obj)}\n\n{inspect.getsource(obj)}"
+        if isinstance(obj, GuidelineMethod):
+            rv = f"In file: {obj.srcfile}\n\n{obj.src}"
+        else:
+            rv = f"In file: {inspect.getsourcefile(obj)}\n\n{inspect.getsource(obj)}"
     except Exception:
         rv = f"No source available for {obj.__name__}"
 
