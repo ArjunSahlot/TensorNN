@@ -1,14 +1,13 @@
 import os
-from os.path import join as path_join
 import setuptools
 
 PARDIR = os.path.realpath(os.path.dirname(__file__))
-TNN = path_join(PARDIR, "tensornn")
+TNN = os.path.join(PARDIR, "tensornn")
 
-with open(path_join(PARDIR, "README.md")) as f:
+with open(os.path.join(PARDIR, "README.md")) as f:
     long_description = f.read()
 
-with open(path_join(PARDIR, "requirements.txt")) as f:
+with open(os.path.join(PARDIR, "requirements.txt")) as f:
     reqs = f.read().strip().split("\n")
 
 

@@ -1,6 +1,5 @@
 """
-This file contains the neural network class which is essentially
-a collections of layers.
+This file contains the neural network class.
 """
 
 #
@@ -52,6 +51,7 @@ class NeuralNetwork:
 
         :param layers: list of layers that make up network
         :param loss: type of loss this network uses to calculate loss
+        :param optimizer: type of optimizer this network uses
         """
 
         self.layers: List[BaseLayer] = list(layers)
