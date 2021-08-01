@@ -29,7 +29,5 @@ __all__ = [
 
 class NotImplementedErr(NotImplementedError):
     def __init__(self, file, inst):
-        self.message = f"TensorNN.{file}.{inst.__class__.__name__} is not currently implemented"
-
-    def __str__(self):
-        return self.message
+        super().__init__(
+            f"TensorNN.{file}.{inst.__class__.__name__} is not currently implemented")

@@ -38,11 +38,11 @@ class Tensor(np.ndarray):
     The tensor class. Currently functions like numpy.ndarray but with a custom print.
     """
 
-    def __new__(cls, input_array=[]):
+    def __new__(cls, input_array=()):
         return np.asarray(input_array).view(cls)
 
 
 # Add TensorNN.Tensor() around the output of np.ndarray
-Tensor.__tmp_str = Tensor.__str__
+Tensor._tmp_str = Tensor.__str__
 Tensor.__str__ = lambda self: "TensorNN.Tensor(\n    " + "    ".join(
-    self.__tmp_str().splitlines(True)) + "\n)"
+    self._tmp_str().splitlines(True)) + "\n)"

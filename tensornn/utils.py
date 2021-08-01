@@ -45,7 +45,7 @@ def source(obj, output=sys.stdout):
     except Exception:
         rv = f"No source available for {obj.__name__}"
 
-    if output is None:
-        return rv
-    else:
+    if output is not None:
         print(rv, file=output)
+
+    return rv

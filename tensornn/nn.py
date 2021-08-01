@@ -42,7 +42,7 @@ class NeuralNetwork:
 
     def __init__(
         self,
-        layers: Optional[Sequence[BaseLayer]] = [],
+        layers: Optional[Sequence[BaseLayer]] = (),
         loss: Optional[BaseLoss] = CategoricalCrossEntropy(),
         optimizer: Optional[BaseOptimizer] = Adam()
     ) -> None:
