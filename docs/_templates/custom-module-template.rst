@@ -36,7 +36,9 @@
       :template: custom-class-template.rst
       :nosignatures:
    {% for item in classes %}
-      {{ item }}
+      {% if not item.startswith("Base") %}
+         {{ item }}
+      {% endif %}
    {%- endfor %}
    {% endif %}
    {% endblock %}
