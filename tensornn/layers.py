@@ -27,7 +27,7 @@ import numpy as np
 
 from .tensor import Tensor
 from .activation import BaseActivation
-from .errors import NotImplemented
+from .errors import NotImplementedErr
 
 
 __all__ = [
@@ -89,7 +89,7 @@ class BaseLayer:
         :returns: the output calculated after this layer
         """
 
-        raise NotImplemented("layers", self)
+        raise NotImplementedErr("layers", self)
 
 
 class Dense(BaseLayer):

@@ -32,7 +32,7 @@ from ..loss import BaseLoss
 from ..activation import BaseActivation
 from ..optimizers import BaseOptimizer
 from ..tensor import Tensor
-from ..errors import NotImplemented
+from ..errors import NotImplementedErr
 
 
 __all__ = [
@@ -112,7 +112,7 @@ respective guidelines(tnn.create.Layer.forward.guideline).
         :returns: the output calculated after this layer
         """
 
-        raise NotImplemented("create", self)
+        raise NotImplementedErr("create", self)
 
 
 class Loss(BaseLoss):

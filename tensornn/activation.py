@@ -27,7 +27,7 @@ very similar to a layer.
 import numpy as np
 
 from .tensor import Tensor
-from .errors import NotImplemented
+from .errors import NotImplementedErr
 
 
 __all__ = [
@@ -49,7 +49,7 @@ class BaseActivation:
         :returns: the inputs after they are passed through the activation function
         """
 
-        raise NotImplemented("activation", self)
+        raise NotImplementedErr("activation", self)
 
 
 class ReLU(BaseActivation):

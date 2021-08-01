@@ -26,7 +26,7 @@ information is used to improve/train it.
 import numpy as np
 
 from .tensor import Tensor
-from .errors import NotImplemented
+from .errors import NotImplementedErr
 
 
 __all__ = [
@@ -59,7 +59,7 @@ class BaseLoss:
         :returns: the calculated loss for one whole pass of the network
         """
 
-        raise NotImplemented("loss", self)
+        raise NotImplementedErr("loss", self)
 
 
 class CategoricalCrossEntropy(BaseLoss):
