@@ -43,6 +43,6 @@ class Tensor(np.ndarray):
 
 
 # Add TensorNN.Tensor() around the output of np.ndarray
-Tensor._tmp_str = Tensor.__str__
+Tensor.tmp_str = Tensor.__str__
 Tensor.__str__ = lambda self: "TensorNN.Tensor(\n    " + "    ".join(
-    self._tmp_str().splitlines(True)) + "\n)"
+    self.tmp_str().splitlines(True)) + "\n)"

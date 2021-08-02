@@ -98,6 +98,15 @@ class Dense(BaseLayer):
     Output is calculated by: (output of previous layer * weights) + biases.
     """
 
+    def __init__(
+        self,
+        num_inputs: int,
+        num_neurons: int,
+        activation: Optional[BaseActivation] = None,
+        zero_biases: bool = True
+    ) -> None:
+        super().__init__(num_inputs, num_neurons, activation, zero_biases)
+
     def _forward(self, inputs):
         # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
         return inputs @ self.weights + self.biases
