@@ -42,7 +42,7 @@ def source(obj, output=sys.stdout):
             rv = f"In file: {obj.srcfile}\n\n{obj.src}"
         else:
             rv = f"In file: {inspect.getsourcefile(obj)}\n\n{inspect.getsource(obj)}"
-    except Exception:
+    except TypeError:
         rv = f"No source available for this object"
 
     if output is not None:
