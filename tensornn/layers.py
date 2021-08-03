@@ -91,6 +91,9 @@ class BaseLayer:
 
         raise NotImplementedErr("layers", self)
 
+    def __iter__(self):
+        yield self
+
 
 class Dense(BaseLayer):
     """
