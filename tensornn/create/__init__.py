@@ -29,7 +29,6 @@ from ..layers import BaseLayer
 from ..loss import BaseLoss
 from ..activation import BaseActivation
 from ..optimizers import BaseOptimizer
-from ..errors import NotImplementedErr
 
 
 __all__ = [
@@ -50,15 +49,21 @@ class Layer(BaseLayer, ABC):
     network to learn and adapt the inputs to the correct outputs.
 
     Checkout the current __init__ by using tnn.source(tnn.create.Layer.__init__). Also checkout
-    the recommended methods for this class(Layer.recommended_methods_to_modify) as well as their
-    respective guidelines(tnn.create.Layer.forward.guideline).
+    the guidelines of some of the methods to see how you should modify them, help(tnn.create.Layer.forward).
     """
 
     def forward(self, inputs):
-        return super().forward(inputs)
+        """
+        This method adds the activation's output(if it exists) then passes that to the _forward method.
+        """
 
     @abstractmethod
-    def _forward(self, inputs): ...
+    def _forward(self, inputs):
+        """
+        This method receives the output of the activation(if it exists). The output of this method should
+        be the output of this layer from the given inputs. For example, a dense layer would connect all
+        inputs to outputs using weights and biases, but maybe your layer does something else.
+        """
 
 
 class Loss(BaseLoss, ABC):
@@ -66,14 +71,14 @@ class Loss(BaseLoss, ABC):
     Base loss class. All custom loss classes should inherit from this.
     """
 
-    def __init__(self) -> None:
-        pass
-
     def calculate(self, pred, desired):
-        return super().calculate(pred, desired)
+        """
+        """
 
     @abstractmethod
-    def _calculate(self, pred, desired): ...
+    def _calculate(self, pred, desired):
+        """
+        """
 
 
 class Activation(BaseActivation, ABC):
@@ -81,17 +86,13 @@ class Activation(BaseActivation, ABC):
     Base activation class. All custom activation classes should inherit from this.
     """
 
-    def __init__(self) -> None:
-        pass
-
     @abstractmethod
-    def forward(self, inputs): ...
+    def forward(self, inputs):
+        """
+        """
 
 
 class Optimizer(BaseOptimizer, ABC):
     """
     Base optimizer class. All custom optimizer classes should inherit from this.
     """
-
-    def __init__(self) -> None:
-        pass
