@@ -24,23 +24,25 @@ very similar to a layer.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 from .tensor import Tensor
-from .errors import NotImplementedErr
-
 
 __all__ = [
+    "Activation",
     "ReLU",
     "Softmax",
 ]
 
 
-class BaseActivation:
+class Activation(ABC):
     """
     Base activation class. All activation classes should inherit from this.
     """
 
+    @abstractmethod
     def forward(self, inputs: Tensor) -> Tensor:
         """
         Calculate a forwards pass of this activation function.
@@ -49,10 +51,8 @@ class BaseActivation:
         :returns: the inputs after they are passed through the activation function
         """
 
-        raise NotImplementedErr("activation", self)
 
-
-class ReLU(BaseActivation):
+class ReLU(Activation):
     """
     The rectified linear unit activation function is one of the simplest activation function.
 
@@ -60,11 +60,11 @@ class ReLU(BaseActivation):
     Ex: [12.319, -91.3, 0.132] -> [12.319, 0, 0.132]
     """
 
-    def forward(self, inputs):
+    def forward(self, inputs: Tensor) -> Tensor:
         return np.maximum(0, inputs)
 
 
-class Softmax(BaseActivation):
+class Softmax(Activation):
     """
     The softmax activation function is most commonly used in the output layer.
     The goal of softmax is to convert the predicted values of the network into percentages that add up to 1.
@@ -97,6 +97,6 @@ class Softmax(BaseActivation):
     Although it may look long numpy simplifies it for us a bunch.
     """
 
-    def forward(self, inputs):
+    def forward(self, inputs: Tensor) -> Tensor:
         exp = np.exp(inputs-np.max(inputs, axis=1, keepdims=True))
         return exp/np.sum(exp, axis=1, keepdims=True)

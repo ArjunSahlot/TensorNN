@@ -24,10 +24,10 @@ This file contains the neural network class.
 from typing import List, Optional, Sequence
 import numpy as np
 
-from .layers import BaseLayer
+from .layers import Layer
 from .tensor import Tensor
-from .optimizers import BaseOptimizer, Adam
-from .loss import BaseLoss, CategoricalCrossEntropy
+from .optimizers import Optimizer, Adam
+from .loss import Loss, CategoricalCrossEntropy
 
 
 __all__ = [
@@ -42,23 +42,23 @@ class NeuralNetwork:
 
     def __init__(
         self,
-        layers: Optional[Sequence[BaseLayer]] = (),
-        loss: Optional[BaseLoss] = CategoricalCrossEntropy(),
-        optimizer: Optional[BaseOptimizer] = Adam()
+        layers: Optional[Sequence[Layer]] = (),
+        loss: Optional[Loss] = CategoricalCrossEntropy(),
+        optimizer: Optional[Optimizer] = Adam()
     ) -> None:
         """
-        Initialize the network
+        Initialize the network.
 
         :param layers: list of layers that make up network
         :param loss: type of loss this network uses to calculate loss
         :param optimizer: type of optimizer this network uses
         """
 
-        self.layers: List[BaseLayer] = list(layers)
+        self.layers: List[Layer] = list(layers)
         self.loss = loss
         self.optimizer = optimizer
 
-    def add(self, layer: BaseLayer) -> None:
+    def add(self, layer: Layer) -> None:
         """
         Add another layer to the network. This is the same as initializing
         the network with this layer.

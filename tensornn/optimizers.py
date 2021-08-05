@@ -22,19 +22,23 @@ Optimizers enable us to improve our neural network efficiently.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 from .tensor import Tensor
 
-
 __all__ = [
-    "Adam"
+    "Optimizer",
+    "Adam",
 ]
 
 
-class BaseOptimizer:
-    pass
+class Optimizer(ABC):
+    """
+    """
 
 
-class Adam(BaseOptimizer):
-    pass
+class Adam(Optimizer):
+    """
+    """

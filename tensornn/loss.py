@@ -23,18 +23,20 @@ information is used to improve/train it.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 from .tensor import Tensor
-from .errors import NotImplementedErr
 
 
 __all__ = [
-    "CategoricalCrossEntropy"
+    "Loss",
+    "CategoricalCrossEntropy",
 ]
 
 
-class BaseLoss:
+class Loss(ABC):
     """
     Base loss class. All loss classes should inherit from this.
     """
@@ -50,6 +52,7 @@ class BaseLoss:
 
         return np.mean(self._calculate(pred, desired))
 
+    @abstractmethod
     def _calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         Calculates the loss for one whole pass of the network.
@@ -59,10 +62,8 @@ class BaseLoss:
         :returns: the calculated loss for one whole pass of the network
         """
 
-        raise NotImplementedErr("loss", self)
 
-
-class CategoricalCrossEntropy(BaseLoss):
+class CategoricalCrossEntropy(Loss):
     """
     Despite its long name, the way the categorical cross entropy loss is calculated is simple.
 
@@ -74,7 +75,7 @@ class CategoricalCrossEntropy(BaseLoss):
     Note: log in programming is usually log base e or natural log or ln in math
     """
 
-    def _calculate(self, pred, desired):
+    def _calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         clipped = np.clip(pred, 1e-10, 1-1e-10)
 
         # If desired is an array of one hot encoded vectors

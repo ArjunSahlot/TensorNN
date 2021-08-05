@@ -35,11 +35,6 @@
       :toctree:
       :template: custom-class-template.rst
       :nosignatures:
-   {% for item in classes %}
-      {% if not item.startswith("Base") %}
-         {{ item }}
-      {% endif %}
-   {%- endfor %}
    {% endif %}
    {% endblock %}
 
