@@ -107,5 +107,9 @@ class Dense(Layer):
 
 class Flatten(Layer):
     """
-
+    Flatten the inputs array. For example, a neural network cannot take in an image
+    as input since it is 2D, so we can flatten it to make it 1D.
     """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return Tensor([inps.flat for inps in inputs])
