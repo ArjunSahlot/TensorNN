@@ -20,14 +20,3 @@ This file contains errors the TensorNN might raise.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-
-
-__all__ = [
-    "NotImplementedErr",
-]
-
-
-class NotImplementedErr(NotImplementedError):
-    def __init__(self, file, inst):
-        super().__init__(
-            f"TensorNN.{file}.{inst.__class__.__name__} is not currently implemented")
