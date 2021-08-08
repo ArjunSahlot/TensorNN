@@ -26,7 +26,7 @@ import numpy as np
 
 from .layers import Layer
 from .tensor import Tensor
-from .optimizers import Optimizer, Adam
+from .optimizers import Optimizer, SGD
 from .loss import Loss, CategoricalCrossEntropy
 
 
@@ -44,7 +44,7 @@ class NeuralNetwork:
         self,
         layers: Optional[Sequence[Layer]] = (),
         loss: Optional[Loss] = CategoricalCrossEntropy(),
-        optimizer: Optional[Optimizer] = Adam()
+        optimizer: Optional[Optimizer] = SGD()
     ) -> None:
         """
         Initialize the network.
@@ -55,8 +55,8 @@ class NeuralNetwork:
         """
 
         self.layers: List[Layer] = list(layers)
-        self.loss = loss
-        self.optimizer = optimizer
+        self.loss: Loss = loss
+        self.optimizer: Optimizer = optimizer
 
     def add(self, layer: Layer) -> None:
         """

@@ -10,6 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+from sphinx.ext.autodoc import ClassDocumenter, _
 import sphinx_rtd_theme
 import os
 import sys
@@ -58,3 +59,32 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ["_static"]
+
+
+# Prevent showing `object` as base class, from https://stackoverflow.com/a/46284013/13751755
+
+add_line = ClassDocumenter.add_line
+line_to_delete = _(u'Bases: %s') % u':class:`object`'
+
+
+def add_line_no_object_base(self, text, *args, **kwargs):
+    if text.strip() == line_to_delete:
+        return
+
+    add_line(self, text, *args, **kwargs)
+
+
+add_directive_header = ClassDocumenter.add_directive_header
+
+
+def add_directive_header_no_object_base(self, *args, **kwargs):
+    self.add_line = add_line_no_object_base.__get__(self)
+
+    result = add_directive_header(self, *args, **kwargs)
+
+    del self.add_line
+
+    return result
+
+
+ClassDocumenter.add_directive_header = add_directive_header_no_object_base

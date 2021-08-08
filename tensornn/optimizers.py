@@ -30,7 +30,7 @@ from .tensor import Tensor
 
 __all__ = [
     "Optimizer",
-    "Adam",
+    "SGD",
 ]
 
 
@@ -39,6 +39,6 @@ class Optimizer(ABC):
     """
 
 
-class Adam(Optimizer):
+class SGD(Optimizer):
     """
     """
