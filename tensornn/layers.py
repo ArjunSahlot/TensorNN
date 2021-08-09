@@ -112,4 +112,4 @@ class Flatten(Layer):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return Tensor([inps.flat for inps in inputs])
+        return Tensor([inps.flatten() for inps in inputs])
