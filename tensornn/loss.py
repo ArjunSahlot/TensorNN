@@ -47,20 +47,31 @@ class Loss(ABC):
 
         :param pred: the prediction of the network
         :param desired: the desired values which the network should have gotten close to
-        :returns: the average of calculated loss for one whole pass of the network across all batches
+        :returns: the average of calculated loss for one whole pass of the network
         """
 
-        return np.mean(self._calculate(pred, desired))
+        return self._post(np.mean(self._pre(pred, desired)))
 
     @abstractmethod
-    def _calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
-        Calculates the loss for one whole pass of the network.
+        Calculates the loss for one whole pass of the network. _pre runs before calculating
+        the mean and it is also required to be overridden
 
         :param pred: the prediction of the network
         :param desired: the desired values which the network should have gotten close to
         :returns: the calculated loss for one whole pass of the network
         """
+
+    def _post(self, mean: Tensor) -> Tensor:
+        """
+        Calculated after the mean has been calculated. This is required for losses like RMSE.
+
+        :param mean: the mean already calculated
+        :returns: loss calculated 
+        """
+
+        return mean
 
 
 class CategoricalCrossEntropy(Loss):
@@ -72,11 +83,11 @@ class CategoricalCrossEntropy(Loss):
     values. 1 is at index 0 so we look at index 0 of our prediction which would be 0.7.
     Now we just take the negative log of 0.7 and we are done!
 
-    Note: log in programming is usually log base e or natural log or ln in math
+    Note: log in programming is usually logₑ or natural log or ln in math
     """
 
-    def _calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
-        clipped = np.clip(pred, 1e-10, 1-1e-10)
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        clipped = np.clip(pred, 1e-15, 1-1e-15)
 
         # If desired is an array of one hot encoded vectors
         if len(desired.shape) == 2:
@@ -84,3 +95,31 @@ class CategoricalCrossEntropy(Loss):
 
         true_pred = clipped[range(len(pred)), desired]
         return -np.log(true_pred)
+
+
+class MSE(Loss):
+    """
+    Mean squared error is calculated extremely simply.
+    1. Find the difference between the prediction vs. the actual results we should have got
+    2. Square these values, because negatives are the same as positives, only magnitude matters
+    3. Sum up all the values
+    4. calculate mean
+
+    ex. our predictions: [[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]], desired: [[0, 0, 1], [0, 0, 1]]
+    1. pred - actual: [[0.1, 0.2, -0.3], [0.2, 0.3, 0.5]]
+    2. squared: [[0.01, 0.04, 0.09], [0.04, 0.09, 0.25]]
+    3. sums: [0.14, 0.48]
+    4. mean: 0.31
+    """
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return np.sum(np.square(pred - desired))
+
+
+class RMSE(MSE):
+    """
+    Root mean squared error is just MSE, but it includes a square root after taking the average.
+    """
+
+    def _post(self, mean: Tensor) -> Tensor:
+        return np.sqrt(mean)
