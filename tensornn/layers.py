@@ -48,6 +48,8 @@ class Layer(ABC):
     to learn and adapt the inputs to the correct outputs.
     """
 
+    neurons: int
+
     @abstractmethod
     def forward(self, inputs: Tensor) -> Tensor:
         """
@@ -96,12 +98,12 @@ class Dense(Layer):
         :param activation: the activation function applied before the layer output is calculated
         :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
         """
-
         if zero_biases:
             self.biases: Tensor = Tensor(np.zeros((1, num_neurons)))
         else:
             self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
 
+        self.neurons = num_neurons
         self.activation: Optional[Activation] = activation
 
     def forward(self, inputs: Tensor) -> Tensor:
@@ -115,14 +117,26 @@ class Dense(Layer):
 
     def register(self, prev: int) -> None:
         self.weights: Tensor = Tensor(
-            np.random.randn(prev, self.biases.shape[1]))
+            np.random.randn(prev, self.neurons))
 
 
 class Flatten(Layer):
     """
     Flatten the inputs array. For example, a neural network cannot take in an image
-    as input since it is 2D, so we can flatten it to make it 1D.
+    as input since it is 2D, so we can flatten it to make it 1D. This should be the
+    first layer of the network.
     """
 
+    def __init__(self, input_neurons: int) -> None:
+        """
+        Initialize flatten layer.
+
+        :param input_neurons: how many inputs will there be to this network
+        """
+
+        self.neurons = input_neurons
+
     def forward(self, inputs: Tensor) -> Tensor:
+        # TODO: there should be a check if inputted size = self.neurons in some way
+
         return Tensor([inps.flatten() for inps in inputs])
