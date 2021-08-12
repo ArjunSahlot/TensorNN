@@ -100,3 +100,13 @@ class Softmax(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         exp = np.exp(inputs-np.max(inputs, axis=1, keepdims=True))
         return exp/np.sum(exp, axis=1, keepdims=True)
+
+
+class Sigmoid(Activation):
+    """
+    The sigmoid function is the following: 1 / (1 + e^(-x)). x being our inputs
+    and e being euler's number.
+    """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return 1/(1+np.e*(-inputs))
