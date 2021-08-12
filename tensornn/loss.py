@@ -55,7 +55,7 @@ class Loss(ABC):
     @abstractmethod
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
-        Calculates the loss for one whole pass of the network. _pre runs before calculating
+        Calculates the loss for one whole pass of the network. `_pre` runs before calculating
         the mean and it is also required to be overridden
 
         :param pred: the prediction of the network
@@ -68,7 +68,7 @@ class Loss(ABC):
         Calculated after the mean has been calculated. This is required for losses like RMSE.
 
         :param mean: the mean already calculated
-        :returns: loss calculated 
+        :returns: loss calculated
         """
 
         return mean
@@ -78,12 +78,12 @@ class CategoricalCrossEntropy(Loss):
     """
     Despite its long name, the way the categorical cross entropy loss is calculated is simple.
 
-    Let's say our prediction (after softmax) is [0.7, 0.2, 0.1], and the desired values are
-    [1, 0, 0]. We can simply get the prediction number at the index of the 1 in the desired
-    values. 1 is at index 0 so we look at index 0 of our prediction which would be 0.7.
-    Now we just take the negative log of 0.7 and we are done!
+    Let's say our prediction (after softmax) is `[0.7, 0.2, 0.1]`, and the desired values are
+    `[1, 0, 0]`. We can simply get the prediction number at the index of the `1` in the desired
+    values. 1 is at index 0 so we look at index 0 of our prediction which would be `0.7`.
+    Now we just take the negative log of `0.7` and we are done!
 
-    Note: log in programming is usually logₑ or natural log or ln in math
+    Note: log in programming is usually `logₑ` or natural `log` or `ln` in math
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
@@ -103,17 +103,17 @@ class MSE(Loss):
     1. Find the difference between the prediction vs. the actual results we should have got
     2. Square these values, because negatives are the same as positives, only magnitude matters
     3. Sum up all the values
-    4. calculate mean
+    4. calculate mean, done in base class (`tnn.loss.Loss`)
 
-    ex. our predictions: [[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]], desired: [[0, 0, 1], [0, 0, 1]]
-    1. pred - actual: [[0.1, 0.2, -0.3], [0.2, 0.3, 0.5]]
-    2. squared: [[0.01, 0.04, 0.09], [0.04, 0.09, 0.25]]
-    3. sums: [0.14, 0.48]
-    4. mean: 0.31
+    ex: our predictions: `[[[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]]]`, desired: `[[[0, 0, 1], [0, 0, 1]]]`
+    1. pred - actual: `[[[0.1, 0.2, -0.3]`, `[0.2, 0.3, -0.5]]]`
+    2. squared: `[[0.01, 0.04, 0.09]`, `[0.04, 0.09, 0.25]]`
+    3. sums: `[0.14, 0.48]`
+    4. mean: `0.26`
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sum(np.square(pred - desired))
+        return np.sum(np.square(pred - desired), axis=1)
 
 
 class RMSE(MSE):
