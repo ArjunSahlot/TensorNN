@@ -28,7 +28,7 @@ from .layers import Layer
 from .tensor import Tensor
 from .optimizers import Optimizer
 from .loss import Loss
-from .errors import RegisteredError, TooFewLayers
+from .errors import RegisteredError, TooFewLayersError
 
 
 __all__ = [
@@ -93,7 +93,7 @@ class NeuralNetwork:
         self.optimizer = optimizer
 
         if not self.layers:
-            raise TooFewLayers("NeuralNetwork needs at least 1 layer")
+            raise TooFewLayersError("NeuralNetwork needs at least 1 layer")
 
         # register all layers
         curr_neurons = self.layers[0].neurons

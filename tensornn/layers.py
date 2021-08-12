@@ -34,7 +34,7 @@ from .activation import Activation
 __all__ = [
     "Layer",
     "Dense",
-    "Flatten"
+    "Flatten",
 ]
 
 

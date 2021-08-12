@@ -22,9 +22,15 @@ This file contains errors the TensorNN might raise.
 #
 
 
+__all__ = [
+    "RegisteredError",
+    "TooFewLayersError"
+]
+
+
 class RegisteredError(Exception):
     pass
 
 
-class TooFewLayers(Exception):
+class TooFewLayersError(Exception):
     pass

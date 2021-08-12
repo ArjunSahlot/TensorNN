@@ -33,6 +33,8 @@ from .tensor import Tensor
 __all__ = [
     "Loss",
     "CategoricalCrossEntropy",
+    "MSE",
+    "RMSE",
 ]
 
 
