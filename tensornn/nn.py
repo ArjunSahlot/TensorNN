@@ -21,13 +21,14 @@ This file contains the neural network class.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 import numpy as np
 
 from .layers import Layer
 from .tensor import Tensor
-from .optimizers import Optimizer, SGD
-from .loss import Loss, CategoricalCrossEntropy
+from .optimizers import Optimizer
+from .loss import Loss
+from .errors import RegisteredError, TooFewLayers
 
 
 __all__ = [
@@ -40,25 +41,18 @@ class NeuralNetwork:
     Create your neural network with this class.
     """
 
-    def __init__(
-        self,
-        layers: Optional[Sequence[Layer]] = (),
-        loss: Optional[Loss] = CategoricalCrossEntropy(),
-        optimizer: Optional[Optimizer] = SGD()
-    ) -> None:
+    def __init__(self, layers: Optional[Sequence[Layer]] = ()) -> None:
         """
         Initialize the network.
 
         :param layers: list of layers that make up network
-        :param loss: type of loss this network uses to calculate loss
-        :param optimizer: type of optimizer this network uses
         """
 
         self.layers: List[Layer] = list(layers)
-        self.loss: Loss = loss
-        self.optimizer: Optimizer = optimizer
+        self.loss: Optional[Loss] = None
+        self.optimizer: Optional[Optimizer] = None
 
-    def add(self, layer: Layer) -> None:
+    def add(self, layers: Union[Layer, Sequence[Layer]]) -> None:
         """
         Add another layer to the network. This is the same as initializing
         the network with this layer.
@@ -67,11 +61,15 @@ class NeuralNetwork:
         :returns: nothing
         """
 
-        self.layers.append(layer)
+        if isinstance(layers, Sequence):
+            self.layers.extend(layers)
+        else:
+            self.layers.append(layers)
 
-    def forward(self, inputs: Tensor) -> Tensor:
+    def predict(self, inputs: Tensor) -> Tensor:
         """
-        Get the output of the neural network.
+        Get the output of the neural network. This method should be used on a trained neural
+        network otherwise it will produce random useless data.
 
         :param inputs: inputs to the network, list of batches which contain a list of inputs
         :returns: output of network after being passed through all layers
@@ -81,3 +79,38 @@ class NeuralNetwork:
             inputs = layer.forward(inputs)
 
         return inputs
+
+    def register(self, loss: Loss, optimizer: Optimizer) -> None:
+        """
+        Register the neural network. This method initializes the network with loss and optimizer
+        and also finishes up any last touches to its layers.
+
+        :param loss: type of loss this network uses to calculate loss
+        :param optimizer: type of optimizer this network uses
+        """
+
+        self.loss = loss
+        self.optimizer = optimizer
+
+        if not self.layers:
+            raise TooFewLayers("NeuralNetwork needs at least 1 layer")
+
+        # register all layers
+        curr_neurons = self.layers[0].neurons
+        for layer in self.layers[1:]:
+            layer.register(curr_neurons)
+            curr_neurons = layer.neurons
+
+    def train(self, inputs: Tensor, desired_outputs: Tensor) -> None:
+        """
+        Train the neural network. What training essentially does is adjust the weights and
+        biases of the neural network for the inputs to match the desired outputs as close
+        as possible.
+
+        :param inputs: training data which is inputted to the network
+        :param desired_outputs: these values is what you want the network to output for respective inputs
+        :returns: nothing
+        """
+
+        if None in (self.loss, self.optimizer):
+            raise RegisteredError("NeuralNetwork is not registered")
