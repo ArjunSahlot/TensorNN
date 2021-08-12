@@ -61,6 +61,17 @@ class Layer(ABC):
         :returns: the output calculated after this layer
         """
 
+    def register(self, prev: int) -> None:
+        """
+        Number of inputs in the previous layer. This is called whenever the NeuralNetwork is
+        registered(NeuralNetwork.register()) with the optimizer and loss, it calls this method
+        for all layers giving information to it. If your layer doesn't need this, you don't need
+        to implement this.
+
+        :param prev: number of neurons in previous layer
+        :returns: nothing
+        """
+
     def __iter__(self):
         yield self
 
@@ -73,7 +84,6 @@ class Dense(Layer):
 
     def __init__(
         self,
-        num_inputs: int,
         num_neurons: int,
         activation: Optional[Activation] = None,
         zero_biases: bool = True
@@ -87,7 +97,6 @@ class Dense(Layer):
         :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
         """
 
-        self.weights: Tensor = Tensor(np.random.randn(num_inputs, num_neurons))
         if zero_biases:
             self.biases: Tensor = Tensor(np.zeros((1, num_neurons)))
         else:
@@ -103,6 +112,10 @@ class Dense(Layer):
 
         # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
         return activated @ self.weights + self.biases
+
+    def register(self, prev: int) -> None:
+        self.weights: Tensor = Tensor(
+            np.random.randn(prev, self.biases.shape[1]))
 
 
 class Flatten(Layer):
