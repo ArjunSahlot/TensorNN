@@ -20,3 +20,11 @@ This file contains errors the TensorNN might raise.
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+
+
+class RegisteredError(Exception):
+    pass
+
+
+class TooFewLayers(Exception):
+    pass
