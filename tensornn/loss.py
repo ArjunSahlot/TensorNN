@@ -125,3 +125,12 @@ class RMSE(MSE):
 
     def _post(self, mean: Tensor) -> Tensor:
         return np.sqrt(mean)
+
+
+class MAE(Loss):
+    """
+    Mean absolute error is MSE but instead of squaring the values, you absolute value them.
+    """
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return np.sum(np.abs(pred - desired), axis=1)
