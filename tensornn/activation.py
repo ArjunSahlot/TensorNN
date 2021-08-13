@@ -109,4 +109,13 @@ class Sigmoid(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return 1/(1+np.e*(-inputs))
+        return 1/(1+np.exp(-inputs))
+
+
+class Swish(Activation):
+    """
+    The swish activation function is the output of the sigmoid function multiplied by x(inputs).
+    """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return inputs/(1+np.exp(-inputs))

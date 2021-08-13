@@ -148,3 +148,30 @@ class MAE(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         return np.sum(np.abs(pred - desired), axis=1)
+
+
+class MSLE(Loss):
+    """
+    Mean squared logarithmic error is MSE but taking the log of our values before subtraction.
+    """
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return np.sum(np.square(np.log(pred+1) - np.log(desired+1)), axis=1)
+
+
+class Poisson(Loss):
+    """
+    Possion loss is calculated with this formula: pred-desired*logₑpred 
+    """
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return np.sum(pred-desired*np.log(pred), axis=1)
+
+
+class SquaredHinge(Loss):
+    """
+    Square hinge loss is calculated with this formula: max(0, 1-pred*desired)^2
+    """
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return np.sum(np.square(np.max(0, 1-pred*desired, axis=1)))
