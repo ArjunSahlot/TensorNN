@@ -57,7 +57,7 @@ class Loss(ABC):
     @abstractmethod
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
-        Calculates the loss for one whole pass of the network. `_pre` runs before calculating
+        Calculates the loss for one whole pass of the network. ``_pre`` runs before calculating
         the mean and it is also required to be overridden
 
         :param pred: the prediction of the network
@@ -78,14 +78,15 @@ class Loss(ABC):
 
 class CategoricalCrossEntropy(Loss):
     """
+    It is recommended to use the Softmax activation function with this loss.
     Despite its long name, the way the categorical cross entropy loss is calculated is simple.
 
-    Let's say our prediction (after softmax) is `[0.7, 0.2, 0.1]`, and the desired values are
-    `[1, 0, 0]`. We can simply get the prediction number at the index of the `1` in the desired
-    values. 1 is at index 0 so we look at index 0 of our prediction which would be `0.7`.
-    Now we just take the negative log of `0.7` and we are done!
+    Let's say our prediction (after softmax) is ``[0.7, 0.2, 0.1]``, and the desired values are
+    ``[1, 0, 0]``. We can simply get the prediction number at the index of the ``1`` in the desired
+    values. 1 is at index 0 so we look at index 0 of our prediction which would be ``0.7``.
+    Now we just take the negative log of ``0.7`` and we are done!
 
-    Note: log in programming is usually `logₑ` or natural `log` or `ln` in math
+    Note: log in programming is usually ``logₑ`` or natural ``log`` or ``ln`` in math
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
@@ -99,19 +100,32 @@ class CategoricalCrossEntropy(Loss):
         return -np.log(true_pred)
 
 
+class BinaryCrossEntropy(Loss):
+    """
+    Sigmoid is the only activation function compatible with BinaryCrossEntropy loss.
+    This is how it is calculated: ``-(desired*log(pred) + (1-desired)*log(1-pred))``.
+
+    Note: log in programming is usually ``logₑ`` or natural ``log`` or ``ln`` in math
+    """
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        pred = np.clip(pred, 1e-15, 1-1e-15)
+        return np.sum(-(desired*np.log(pred) + (1-desired)*np.log(1-pred)), axis=1)
+
+
 class MSE(Loss):
     """
     Mean squared error is calculated extremely simply.
     1. Find the difference between the prediction vs. the actual results we should have got
     2. Square these values, because negatives are the same as positives, only magnitude matters
     3. Sum up all the values
-    4. calculate mean, done in base class (`tnn.loss.Loss`)
+    4. calculate mean, done in base class (``tnn.loss.Loss``)
 
-    ex: our predictions: `[[[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]]]`, desired: `[[[0, 0, 1], [0, 0, 1]]]`
-    1. pred - actual: `[[[0.1, 0.2, -0.3]`, `[0.2, 0.3, -0.5]]]`
-    2. squared: `[[0.01, 0.04, 0.09]`, `[0.04, 0.09, 0.25]]`
-    3. sums: `[0.14, 0.48]`
-    4. mean: `0.26`
+    ex: our predictions: ``[[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]]``, desired: ``[[0, 0, 1], [0, 0, 1]]``
+    1. pred - actual: ``[[0.1, 0.2, -0.3], [0.2, 0.3, -0.5]]``
+    2. squared: ``[[0.01, 0.04, 0.09], [0.04, 0.09, 0.25]]``
+    3. sums: ``[0.14, 0.48]``
+    4. mean: ``0.26``
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
