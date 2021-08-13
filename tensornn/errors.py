@@ -29,8 +29,12 @@ __all__ = [
 
 
 class RegisteredError(Exception):
-    pass
+    """
+    Raised when you try to train your NeuralNetwork before registering it.
+    """
 
 
 class TooFewLayersError(Exception):
-    pass
+    """
+    Raised when your NeuralNetwork has less than 1 layer. 
+    """
