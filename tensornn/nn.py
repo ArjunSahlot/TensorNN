@@ -66,12 +66,11 @@ class NeuralNetwork:
         else:
             self.layers.append(layers)
 
-    def predict(self, inputs: Tensor) -> Tensor:
+    def forward(self, inputs: Tensor) -> Tensor:
         """
-        Get the output of the neural network. This method should be used on a trained neural
-        network otherwise it will produce random useless data.
+        Get the output of the neural network.
 
-        :param inputs: inputs to the network, list of batches which contain a list of inputs
+        :param inputs: inputs to the network
         :returns: output of network after being passed through all layers
         """
 
@@ -79,6 +78,17 @@ class NeuralNetwork:
             inputs = layer.forward(inputs)
 
         return inputs
+
+    def predict(self, inputs: Tensor) -> Tensor:
+        """
+        Get the prediction of the neural network for the given input. This method should only
+        be used on a trained network, because otherwise it will produce useless random values.
+
+        :param inputs: inputs to the network
+        :returns: the index of the neuron with the highest activation
+        """
+
+        return np.argmax(self.forward(inputs))
 
     def register(self, loss: Loss, optimizer: Optimizer) -> None:
         """
