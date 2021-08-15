@@ -35,6 +35,10 @@ __all__ = [
     "CategoricalCrossEntropy",
     "MSE",
     "RMSE",
+    "MAE",
+    "MSLE",
+    "Poisson",
+    "SquaredHinge",
 ]
 
 
@@ -52,7 +56,7 @@ class Loss(ABC):
         :returns: the average of calculated loss for one whole pass of the network
         """
 
-        return self._post(np.mean(self._pre(pred, desired)))
+        return np.mean(self._pre(pred, desired))
 
     @abstractmethod
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
@@ -64,16 +68,6 @@ class Loss(ABC):
         :param desired: the desired values which the network should have gotten close to
         :returns: the calculated loss for one whole pass of the network
         """
-
-    def _post(self, mean: Tensor) -> Tensor:
-        """
-        Calculated after the mean has been calculated. This is required for losses like RMSE.
-
-        :param mean: the mean already calculated
-        :returns: loss calculated
-        """
-
-        return mean
 
 
 class CategoricalCrossEntropy(Loss):
@@ -110,7 +104,7 @@ class BinaryCrossEntropy(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = np.clip(pred, 1e-15, 1-1e-15)
-        return np.sum(-(desired*np.log(pred) + (1-desired)*np.log(1-pred)), axis=1)
+        return -(desired*np.log(pred) + (1-desired)*np.log(1-pred))
 
 
 class MSE(Loss):
@@ -118,18 +112,16 @@ class MSE(Loss):
     Mean squared error is calculated extremely simply.
     1. Find the difference between the prediction vs. the actual results we should have got
     2. Square these values, because negatives are the same as positives, only magnitude matters
-    3. Sum up all the values
-    4. calculate mean, done in base class (``tnn.loss.Loss``)
+    3. calculate means
 
     ex: our predictions: ``[[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]]``, desired: ``[[0, 0, 1], [0, 0, 1]]``
     1. pred - actual: ``[[0.1, 0.2, -0.3], [0.2, 0.3, -0.5]]``
     2. squared: ``[[0.01, 0.04, 0.09], [0.04, 0.09, 0.25]]``
-    3. sums: ``[0.14, 0.48]``
-    4. mean: ``0.26``
+    3. means: ``[0.04666667, 0.12666667]``
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sum(np.square(pred - desired), axis=1)
+        return np.mean(np.square(pred - desired), axis=1)
 
 
 class RMSE(MSE):
@@ -137,8 +129,8 @@ class RMSE(MSE):
     Root mean squared error is just MSE, but it includes a square root after taking the average.
     """
 
-    def _post(self, mean: Tensor) -> Tensor:
-        return np.sqrt(mean)
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return np.sqrt(np.mean(np.square(pred - desired), axis=1))
 
 
 class MAE(Loss):
@@ -147,7 +139,7 @@ class MAE(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sum(np.abs(pred - desired), axis=1)
+        return np.mean(np.abs(pred - desired), axis=1)
 
 
 class MSLE(Loss):
@@ -156,7 +148,8 @@ class MSLE(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sum(np.square(np.log(pred+1) - np.log(desired+1)), axis=1)
+        pred[pred == -1] = 1e-15-1
+        return np.mean(np.square(np.log(pred+1) - np.log(desired+1)), axis=1)
 
 
 class Poisson(Loss):
@@ -165,7 +158,8 @@ class Poisson(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sum(pred-desired*np.log(pred), axis=1)
+        pred[pred == 0] = 1e-15
+        return np.mean(pred-desired*np.log(pred), axis=1)
 
 
 class SquaredHinge(Loss):
