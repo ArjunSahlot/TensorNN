@@ -80,7 +80,7 @@ class CategoricalCrossEntropy(Loss):
     values. 1 is at index 0 so we look at index 0 of our prediction which would be ``0.7``.
     Now we just take the negative log of ``0.7`` and we are done!
 
-    Note: log in programming is usually ``logₑ`` or natural ``log`` or ``ln`` in math
+    Note: log in programming is usually ``logₑ`` or natural ``log`` or ``ln`` in math.
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
@@ -154,7 +154,7 @@ class MSLE(Loss):
 
 class Poisson(Loss):
     """
-    Possion loss is calculated with this formula: pred-desired*logₑpred 
+    Possion loss is calculated with this formula: average of (pred-desired*logₑpred)
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
