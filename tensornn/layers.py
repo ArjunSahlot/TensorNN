@@ -107,13 +107,12 @@ class Dense(Layer):
         self.activation: Optional[Activation] = activation
 
     def forward(self, inputs: Tensor) -> Tensor:
-        if self.activation is not None:
-            activated = self.activation.forward(inputs)
-        else:
-            activated = inputs
-
         # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
-        return activated @ self.weights + self.biases
+        values = inputs @ self.weights + self.biases
+
+        if self.activation is not None:
+            return self.activation.forward(inputs)
+        return values
 
     def register(self, prev: int) -> None:
         self.weights: Tensor = Tensor(
