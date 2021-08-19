@@ -84,7 +84,7 @@ class CategoricalCrossEntropy(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        clipped = np.clip(pred, 1e-15, 1-1e-15)
+        clipped = np.clip(pred, 1e-15, 1-1e-15)  # prevent np.log(0)
 
         # If desired is an array of one hot encoded vectors
         if len(desired.shape) == 2:

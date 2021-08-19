@@ -54,7 +54,7 @@ class NeuralNetwork:
 
     def add(self, layers: Union[Layer, Sequence[Layer]]) -> None:
         """
-        Add another layer to the network. This is the same as initializing
+        Add another layer(s) to the network. This is the same as initializing
         the network with this layer.
 
         :param layer: the layer to be added
