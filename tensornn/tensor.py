@@ -25,6 +25,8 @@ functionality to our extended class such as new methods.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from typing import Sequence
+
 import numpy as np
 
 
@@ -33,7 +35,7 @@ __all__ = [
 ]
 
 
-class Tensor(np.ndarray):
+class Tensor(np.ndarray, Sequence):
     """
     The tensor class. Currently functions like numpy.ndarray but with a custom print.
     """
