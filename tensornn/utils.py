@@ -23,9 +23,8 @@ This file contains useful variables that are used in TensorNN.
 
 import sys
 import inspect
-import warnings
 from io import TextIOWrapper
-from typing import Any, Optional, Union
+from typing import Any, Sequence, Union
 
 from .tensor import Tensor
 
@@ -56,7 +55,7 @@ def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout):
     return rv
 
 
-def one_hot(ind: int, classes: Optional[int] = None, suppress: bool = False):
+def one_hot(values: Union[int, Sequence[int]], classes: int):
     """
     Get the one-hot representation of an integer. One-hot representation is like
     the opposite of np.argmax. Let's we want our network's output to be
@@ -64,16 +63,12 @@ def one_hot(ind: int, classes: Optional[int] = None, suppress: bool = False):
     If you were to run np.argmax([0, 1]), you would get the index of the 1(which is also
     the index of the max value).
 
-    :param ind: number you want to represent
+    :param values: to be converted to one-hot, ex one_hot(3, 5) -> [0, 0, 0, 1, 0]
     :param classes: number of different places for the 1, len of one-hot
-    :param suppress: don't show a warning if ind >= classes, ind out of range
     :returns: one-hot vector from the given params
     """
 
-    classes = ind+1 if classes is None else classes
-
-    if not suppress and ind >= classes:
-        warnings.warn(
-            f"Index for one-hot is out of range, ind: {ind}, classes: {classes}")
-
-    return Tensor([1 if i == ind else 0 for i in range(classes)])
+    if isinstance(values, Sequence):
+        if not (isinstance(values, Tensor) and values.shape == ()):
+            return Tensor([one_hot(i, classes) for i in values])
+    return Tensor([1 if i == values else 0 for i in range(classes)])
