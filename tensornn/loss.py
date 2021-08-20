@@ -28,6 +28,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .tensor import Tensor
+from .utils import one_hot
 
 
 __all__ = [
@@ -56,6 +57,10 @@ class Loss(ABC):
         :returns: the average of calculated loss for one whole pass of the network
         """
 
+        # Not one-hot
+        if pred.shape != desired.shape:
+            desired = one_hot(desired, pred.shape[-1])
+
         return np.mean(self._pre(pred, desired))
 
     @abstractmethod
@@ -65,7 +70,7 @@ class Loss(ABC):
         the mean and it is also required to be overridden
 
         :param pred: the prediction of the network
-        :param desired: the desired values which the network should have gotten close to
+        :param desired: the desired values which the network should have gotten close to, one-hot
         :returns: the calculated loss for one whole pass of the network
         """
 
@@ -80,16 +85,12 @@ class CategoricalCrossEntropy(Loss):
     values. 1 is at index 0 so we look at index 0 of our prediction which would be ``0.7``.
     Now we just take the negative log of ``0.7`` and we are done!
 
-    Note: log in programming is usually ``logₑ`` or natural ``log`` or ``ln`` in math.
+    Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math.
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        clipped = np.clip(pred, 1e-15, 1-1e-15)  # prevent np.log(0)
-
-        # If desired is an array of one hot encoded vectors
-        if len(desired.shape) == 2:
-            desired = np.argmax(desired, axis=1)
-
+        clipped = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
+        desired = desired.argmax(axis=1)
         true_pred = clipped[range(len(pred)), desired]
         return -np.log(true_pred)
 
@@ -99,11 +100,11 @@ class BinaryCrossEntropy(Loss):
     Sigmoid is the only activation function compatible with BinaryCrossEntropy loss.
     This is how it is calculated: ``-(desired*log(pred) + (1-desired)*log(1-pred))``.
 
-    Note: log in programming is usually ``logₑ`` or natural ``log`` or ``ln`` in math
+    Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        pred = np.clip(pred, 1e-15, 1-1e-15)
+        pred = pred.clip(1e-15, 1-1e-15)
         return -(desired*np.log(pred) + (1-desired)*np.log(1-pred))
 
 
@@ -121,7 +122,8 @@ class MSE(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.mean(np.square(pred - desired), axis=1)
+        squared_error = np.square(pred - desired)
+        return np.mean(squared_error, axis=int(len(squared_error.shape) != 1))
 
 
 class RMSE(MSE):
@@ -130,7 +132,8 @@ class RMSE(MSE):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sqrt(np.mean(np.square(pred - desired), axis=1))
+        squared_error = np.square(pred - desired)
+        return np.sqrt(np.mean(squared_error, axis=int(len(squared_error.shape) != 1)))
 
 
 class MAE(Loss):
@@ -139,7 +142,8 @@ class MAE(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.mean(np.abs(pred - desired), axis=1)
+        abs_error = np.abs(pred - desired)
+        return np.mean(abs_error, axis=int(len(abs_error.shape) != 1))
 
 
 class MSLE(Loss):
@@ -149,7 +153,8 @@ class MSLE(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == -1] = 1e-15-1
-        return np.mean(np.square(np.log(pred+1) - np.log(desired+1)), axis=1)
+        squared_log_error = np.square(np.log(pred+1) - np.log(desired+1))
+        return np.mean(squared_log_error, axis=int(len(squared_log_error.shape) != 1))
 
 
 class Poisson(Loss):
@@ -159,7 +164,8 @@ class Poisson(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == 0] = 1e-15
-        return np.mean(pred-desired*np.log(pred), axis=1)
+        error = pred-desired*np.log(pred)
+        return np.mean(error, axis=int(len(error.shape) != 1))
 
 
 class SquaredHinge(Loss):
@@ -168,4 +174,5 @@ class SquaredHinge(Loss):
     """
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.sum(np.square(np.max(0, 1-pred*desired, axis=1)))
+        error = 1-pred*desired
+        return np.sum(np.square(np.maximum(0, error)), axis=int(len(error.shape) != 1))
