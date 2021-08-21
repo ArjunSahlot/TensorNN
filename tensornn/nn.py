@@ -23,6 +23,7 @@ This file contains the neural network class.
 
 from typing import List, Optional, Sequence, Union
 import numpy as np
+from tqdm import tqdm
 
 from .layers import Layer
 from .tensor import Tensor
@@ -111,7 +112,7 @@ class NeuralNetwork:
             layer.register(curr_neurons)
             curr_neurons = layer.neurons
 
-    def train(self, inputs: Tensor, desired_outputs: Tensor) -> None:
+    def train(self, inputs: Tensor, desired_outputs: Tensor, epochs: int) -> None:
         """
         Train the neural network. What training essentially does is adjust the weights and
         biases of the neural network for the inputs to match the desired outputs as close
@@ -119,8 +120,13 @@ class NeuralNetwork:
 
         :param inputs: training data which is inputted to the network
         :param desired_outputs: these values is what you want the network to output for respective inputs
+        :param epochs: how many iterations will your network complete in to learn
         :returns: nothing
         """
 
         if None in (self.loss, self.optimizer):
             raise RegisteredError("NeuralNetwork is not registered")
+
+        for epoch in range(epochs):
+            for i in tqdm(range(len(inputs)), f"Epoch {epoch}", unit="data"):
+                pass

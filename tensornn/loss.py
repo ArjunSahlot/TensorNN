@@ -46,7 +46,14 @@ __all__ = [
 class Loss(ABC):
     """
     Base loss class. All loss classes should inherit from this.
+
+    vec_type is the type of format the loss function would prefer getting the input,
+    either "one-hot" or "int".
+    For example, MSE would prefer getting "one-hot" and CategoricalCrossEntropy would
+    like "int"
     """
+
+    vec_type: str
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
@@ -57,9 +64,12 @@ class Loss(ABC):
         :returns: the average of calculated loss for one whole pass of the network
         """
 
-        # Not one-hot
-        if pred.shape != desired.shape:
+        # If wanted one-hot and not one-hot format
+        if self.vec_type == "one-hot" and pred.shape != desired.shape:
             desired = one_hot(desired, pred.shape[-1])
+        # Otherwise if wanted int and one-hot format
+        elif self.vec_type == "int" and pred.shape == desired.shape:
+            desired = np.argmax(desired, axis=int(len(desired.shape) == 2))
 
         return np.mean(self._pre(pred, desired))
 
@@ -88,10 +98,11 @@ class CategoricalCrossEntropy(Loss):
     Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math.
     """
 
+    vec_type = "int"
+
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         clipped = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
-        desired = desired.argmax(axis=1)
-        true_pred = clipped[range(len(pred)), desired]
+        true_pred = clipped[..., desired]
         return -np.log(true_pred)
 
 
@@ -102,6 +113,8 @@ class BinaryCrossEntropy(Loss):
 
     Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math
     """
+
+    vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1-1e-15)
@@ -121,15 +134,19 @@ class MSE(Loss):
     3. means: ``[0.04666667, 0.12666667]``
     """
 
+    vec_type = "one-hot"
+
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
         return np.mean(squared_error, axis=int(len(squared_error.shape) != 1))
 
 
-class RMSE(MSE):
+class RMSE(Loss):
     """
     Root mean squared error is just MSE, but it includes a square root after taking the average.
     """
+
+    vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
@@ -141,6 +158,8 @@ class MAE(Loss):
     Mean absolute error is MSE but instead of squaring the values, you absolute value them.
     """
 
+    vec_type = "one-hot"
+
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         abs_error = np.abs(pred - desired)
         return np.mean(abs_error, axis=int(len(abs_error.shape) != 1))
@@ -150,6 +169,8 @@ class MSLE(Loss):
     """
     Mean squared logarithmic error is MSE but taking the log of our values before subtraction.
     """
+
+    vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == -1] = 1e-15-1
@@ -162,6 +183,8 @@ class Poisson(Loss):
     Possion loss is calculated with this formula: average of (pred-desired*logₑpred)
     """
 
+    vec_type = "one-hot"
+
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == 0] = 1e-15
         error = pred-desired*np.log(pred)
@@ -172,6 +195,8 @@ class SquaredHinge(Loss):
     """
     Square hinge loss is calculated with this formula: max(0, 1-pred*desired)^2
     """
+
+    vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         error = 1-pred*desired
