@@ -24,7 +24,7 @@ This file contains useful variables that are used in TensorNN.
 import sys
 import inspect
 from io import TextIOWrapper
-from typing import Any, Sequence, Union
+from typing import Any, Callable, Sequence, Union
 
 from .tensor import Tensor
 
@@ -35,7 +35,7 @@ __all__ = [
 ]
 
 
-def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout):
+def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout) -> str:
     """
     Get the source code of a TensorNN object.
 
@@ -55,7 +55,7 @@ def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout):
     return rv
 
 
-def one_hot(values: Union[int, Sequence[int]], classes: int):
+def one_hot(values: Union[int, Sequence[int]], classes: int) -> Tensor:
     """
     Get the one-hot representation of an integer. One-hot representation is like
     the opposite of np.argmax. Let's we want our network's output to be
@@ -72,3 +72,23 @@ def one_hot(values: Union[int, Sequence[int]], classes: int):
         if not (isinstance(values, Tensor) and values.shape == ()):
             return Tensor([one_hot(i, classes) for i in values])
     return Tensor([1 if i == values else 0 for i in range(classes)])
+
+
+def derivative(func: Callable, ind: int, args: Sequence[Any]) -> float:
+    """
+    Calculate the partial derivative of a multivariable function.
+
+    :param func: function to get derivative of
+    :param ind: the index of the param to differentiate
+    :param args: list of args the func takes
+    :returns: the partial derivative of multivariable function
+    """
+
+    delta = 1e-15
+    args = list(args)
+
+    y1 = func(*args)
+    args[ind] += delta
+    y2 = func(*args)
+
+    return (y2-y1)/delta
