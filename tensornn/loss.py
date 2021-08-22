@@ -101,8 +101,8 @@ class CategoricalCrossEntropy(Loss):
     vec_type = "int"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        clipped = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
-        true_pred = clipped[..., desired]
+        pred = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
+        true_pred = pred[..., desired]
         return -np.log(true_pred)
 
 
@@ -117,7 +117,7 @@ class BinaryCrossEntropy(Loss):
     vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        pred = pred.clip(1e-15, 1-1e-15)
+        pred = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
         return -(desired*np.log(pred) + (1-desired)*np.log(1-pred))
 
 
@@ -201,3 +201,15 @@ class SquaredHinge(Loss):
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         error = 1-pred*desired
         return np.sum(np.square(np.maximum(0, error)), axis=int(len(error.shape) != 1))
+
+
+class RSS(Loss):
+    """
+    Residual sum of squares loss is MSE but instead of doing the mean, you do the sum.
+    """
+
+    vec_type = "one-hot"
+
+    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+        squared_error = np.square(pred - desired)
+        return np.sum(squared_error, axis=int(len(squared_error.shape) != 1))
