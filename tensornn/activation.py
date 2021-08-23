@@ -34,6 +34,10 @@ __all__ = [
     "Activation",
     "ReLU",
     "Softmax",
+    "LeakyReLU",
+    "ELU",
+    "Sigmoid",
+    "Swish"
 ]
 
 
@@ -57,11 +61,41 @@ class ReLU(Activation):
     The rectified linear unit activation function is one of the simplest activation function.
 
     If ReLU is given a negative value(<0) it will convert it into a 0, otherwise it will keep it the same.
-    Ex: [12.319, -91.3, 0.132] -> [12.319, 0, 0.132]
+    Ex: ``[12.319, -91.3, 0.132] -> [12.319, 0, 0.132]``
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
         return np.maximum(0, inputs)
+
+
+class LeakyReLU(Activation):
+    """
+    Leaky ReLU is extremely similar to ReLU but instead of just 0 for negatives, it uses 0.1 times the value.
+    Ex. ``[12.319, -91.3, 0.132] -> [12.319, -9.13, 0.132]``
+    """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return np.maximum(inputs/10, inputs)
+
+
+class ELU(Activation):
+    """
+    Exponential linear unit is itself for non negative values but otherwise it's ``alpha*((e^x)-1)``,
+    alpha can be any value.
+    """
+
+    def __init__(self, alpha: int = 1) -> None:
+        """
+        Initialize ELU.
+
+        :param alpha: multiplier used in formula, checkout help(tnn.activation.ELU), defaults to 1
+        :returns: nothing
+        """
+
+        self.alpha = alpha
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return np.where(inputs >= 0, inputs, self.alpha*(np.exp(inputs)-1))
 
 
 class Softmax(Activation):

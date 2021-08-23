@@ -114,6 +114,9 @@ class Dense(Layer):
             return self.activation.forward(inputs)
         return values
 
+    def backword(self, error: Tensor):
+        pass
+
     def register(self, prev: int) -> None:
         self.weights: Tensor = Tensor(
             np.random.randn(prev, self.neurons))
