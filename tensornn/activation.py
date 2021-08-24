@@ -30,15 +30,7 @@ import numpy as np
 
 from .tensor import Tensor
 
-__all__ = [
-    "Activation",
-    "ReLU",
-    "Softmax",
-    "LeakyReLU",
-    "ELU",
-    "Sigmoid",
-    "Swish"
-]
+__all__ = ["Activation", "ReLU", "Softmax", "LeakyReLU", "ELU", "Sigmoid", "Swish"]
 
 
 class Activation(ABC):
@@ -85,7 +77,7 @@ class LeakyReLU(Activation):
         self.leak = leak
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.maximum(inputs*self.leak, inputs)
+        return np.maximum(inputs * self.leak, inputs)
 
 
 class ELU(Activation):
@@ -105,7 +97,7 @@ class ELU(Activation):
         self.alpha = alpha
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs >= 0, inputs, self.alpha*(np.exp(inputs)-1))
+        return np.where(inputs >= 0, inputs, self.alpha * (np.exp(inputs) - 1))
 
 
 class Softmax(Activation):
@@ -140,19 +132,17 @@ class Softmax(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        exp = np.exp(
-            inputs-np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
-        return exp/np.sum(exp, axis=int(inputs.ndim == 2))
+        exp = np.exp(inputs - np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
+        return exp / np.sum(exp, axis=int(inputs.ndim == 2))
 
 
 class Sigmoid(Activation):
     """
-    The sigmoid function is the following: 1 / (1 + e^(-x)). x being our inputs
-    and e being euler's number.
+    The sigmoid function is the following: 1 / (1+e^(-x)). x being our inputs and e being euler's number.
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return 1/(1+np.exp(-inputs))
+        return 1 / (1 + np.exp(-inputs))
 
 
 class Swish(Activation):
@@ -161,4 +151,4 @@ class Swish(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return inputs/(1+np.exp(-inputs))
+        return inputs / (1 + np.exp(-inputs))
