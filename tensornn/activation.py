@@ -70,12 +70,22 @@ class ReLU(Activation):
 
 class LeakyReLU(Activation):
     """
-    Leaky ReLU is extremely similar to ReLU but instead of just 0 for negatives, it uses 0.1 times the value.
-    Ex. ``[12.319, -91.3, 0.132] -> [12.319, -9.13, 0.132]``
+    Leaky ReLU is extremely similar to ReLU but instead of just 0 for negatives, it is the leak times the value.
+    Ex, leak=0.1. ``[12.319, -91.3, 0.132] -> [12.319, -9.13, 0.132]``
     """
 
+    def __init__(self, leak: float = 0.1) -> None:
+        """
+        Initialize LeakyReLU.
+
+        :param alpha: multiplier used in formula, checkout help(tnn.activation.LeakyReLU), defaults to 1
+        :returns: nothing
+        """
+
+        self.leak = leak
+
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.maximum(inputs/10, inputs)
+        return np.maximum(inputs*self.leak, inputs)
 
 
 class ELU(Activation):
@@ -84,7 +94,7 @@ class ELU(Activation):
     alpha can be any value.
     """
 
-    def __init__(self, alpha: int = 1) -> None:
+    def __init__(self, alpha: float = 1) -> None:
         """
         Initialize ELU.
 
@@ -119,7 +129,7 @@ class Softmax(Activation):
     (e^-inf) to 1 (e^0).
 
     Finally, to come up with all the percentages we can just figure out how much each value contributes to the
-    final sum, what fraction of the sum does the value make. So we can do each value divided by the total sum.
+    final sum, what fraction of the sum does each value make. So we can do each value divided by the total sum.
 
     All steps/TLDR:
     Starting values (from previous example): [-1.42, 3.312, 0.192]
@@ -127,13 +137,12 @@ class Softmax(Activation):
     Exponentiation, raise each value to e (e^x): [0.0080884, 1, 0.04415717]
     Come up with percentages, divide each number by the sum: sum is 1.05224557 so we divide each value by it,
     [0.00836574, 0.94969828, 0.04193599]
-
-    Although it may look long numpy simplifies it for us a bunch.
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        exp = np.exp(inputs-np.max(inputs, axis=1, keepdims=True))
-        return exp/np.sum(exp, axis=1, keepdims=True)
+        exp = np.exp(
+            inputs-np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
+        return exp/np.sum(exp, axis=int(inputs.ndim == 2))
 
 
 class Sigmoid(Activation):
