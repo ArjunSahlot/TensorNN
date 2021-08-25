@@ -22,10 +22,7 @@ This file contains errors the TensorNN might raise.
 #
 
 
-__all__ = [
-    "RegisteredError",
-    "TooFewLayersError"
-]
+__all__ = ["RegisteredError", "TooFewLayersError"]
 
 
 class RegisteredError(Exception):
@@ -36,5 +33,12 @@ class RegisteredError(Exception):
 
 class TooFewLayersError(Exception):
     """
-    Raised when your NeuralNetwork has less than 1 layer. 
+    Raised when your NeuralNetwork has less than 1 layer.
+    """
+
+
+# TODO: Fix docstring
+class InputDimError(Exception):
+    """
+    Raised when number of dimensions of _____ is not 2
     """
