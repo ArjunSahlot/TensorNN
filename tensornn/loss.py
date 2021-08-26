@@ -101,7 +101,7 @@ class CategoricalCrossEntropy(Loss):
     vec_type = "int"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        pred = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
+        pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
         true_pred = pred[..., desired]
         return -np.log(true_pred)
 
@@ -117,8 +117,8 @@ class BinaryCrossEntropy(Loss):
     vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        pred = pred.clip(1e-15, 1-1e-15)  # prevent np.log(0)
-        return -(desired*np.log(pred) + (1-desired)*np.log(1-pred))
+        pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
+        return -(desired * np.log(pred) + (1 - desired) * np.log(1 - pred))
 
 
 class MSE(Loss):
@@ -173,8 +173,8 @@ class MSLE(Loss):
     vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        pred[pred == -1] = 1e-15-1
-        squared_log_error = np.square(np.log(pred+1) - np.log(desired+1))
+        pred[pred == -1] = 1e-15 - 1
+        squared_log_error = np.square(np.log(pred + 1) - np.log(desired + 1))
         return np.mean(squared_log_error, axis=int(len(squared_log_error.shape) != 1))
 
 
@@ -187,7 +187,7 @@ class Poisson(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == 0] = 1e-15
-        error = pred-desired*np.log(pred)
+        error = pred - desired * np.log(pred)
         return np.mean(error, axis=int(len(error.shape) != 1))
 
 
@@ -199,7 +199,7 @@ class SquaredHinge(Loss):
     vec_type = "one-hot"
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
-        error = 1-pred*desired
+        error = 1 - pred * desired
         return np.sum(np.square(np.maximum(0, error)), axis=int(len(error.shape) != 1))
 
 
