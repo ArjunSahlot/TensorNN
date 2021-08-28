@@ -35,10 +35,8 @@ __all__ = [
 
 
 class Optimizer(ABC):
-    """
-    """
+    """ """
 
 
 class SGD(Optimizer):
-    """
-    """
+    """ """
