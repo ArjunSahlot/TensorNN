@@ -46,5 +46,14 @@ class Tensor(np.ndarray, Sequence):
 
 # Add TensorNN.Tensor() around the output of np.ndarray
 Tensor.tmp_str = Tensor.__str__
-Tensor.__str__ = lambda self: "TensorNN.Tensor(" + ("\n    " if len(self.shape) > 1 else "") + ("    ".join(
-    self.tmp_str().splitlines(True)) if len(self.shape) > 1 else self.tmp_str()) + ("\n" if len(self.shape) > 1 else "") + ")"
+Tensor.__str__ = (
+    lambda self: "TensorNN.Tensor("
+    + ("\n    " if len(self.shape) > 1 else "")
+    + (
+        "    ".join(self.tmp_str().splitlines(True))
+        if len(self.shape) > 1
+        else self.tmp_str()
+    )
+    + ("\n" if len(self.shape) > 1 else "")
+    + ")"
+)
