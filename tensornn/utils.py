@@ -29,10 +29,7 @@ from typing import Any, Callable, Sequence, Union
 from .tensor import Tensor
 
 
-__all__ = [
-    "source",
-    "one_hot"
-]
+__all__ = ["source", "one_hot"]
 
 
 def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout) -> str:
@@ -91,4 +88,4 @@ def derivative(func: Callable, ind: int, args: Sequence[Any]) -> float:
     args[ind] += delta
     y2 = func(*args)
 
-    return (y2-y1)/delta
+    return (y2 - y1) / delta
