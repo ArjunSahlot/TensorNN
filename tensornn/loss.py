@@ -40,6 +40,7 @@ __all__ = [
     "MSLE",
     "Poisson",
     "SquaredHinge",
+    "RSS",
 ]
 
 
