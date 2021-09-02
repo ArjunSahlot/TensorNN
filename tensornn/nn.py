@@ -29,7 +29,7 @@ from .layers import Layer
 from .tensor import Tensor
 from .optimizers import Optimizer
 from .loss import Loss
-from .errors import RegisteredError, TooFewLayersError
+from .errors import RegisteredError, TooFewLayersError, InputDimError
 
 
 __all__ = [
@@ -120,12 +120,18 @@ class NeuralNetwork:
 
         :param inputs: training data which is inputted to the network
         :param desired_outputs: these values is what you want the network to output for respective inputs
-        :param epochs: how many iterations will your network complete in to learn
+        :param epochs: how many iterations will your network will run to learn
         :returns: nothing
         """
 
         if None in (self.loss, self.optimizer):
             raise RegisteredError("NeuralNetwork is not registered")
+
+        if inputs.ndim < 2:
+            raise InputDimError(
+                "Received inputs less than 2D. Need to be at least 2D. "
+                "Use numpy.atleast_2d to make them 2D."
+            )
 
         for epoch in range(epochs):
             for i in tqdm(range(len(inputs)), f"Epoch {epoch}", unit="data"):
