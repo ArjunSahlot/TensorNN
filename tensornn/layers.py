@@ -23,7 +23,6 @@ Layers need to be able to propagate their inputs forward.
 #
 
 from abc import ABC, abstractmethod
-from tensornn.errors import InputDimError
 from typing import Optional
 
 import numpy as np
@@ -74,9 +73,6 @@ class Layer(ABC):
         :param prev: number of neurons in previous layer
         :returns: nothing
         """
-
-    def __iter__(self):
-        yield self
 
 
 class Dense(Layer):
@@ -136,10 +132,4 @@ class Flatten(Layer):
         self.neurons = input_neurons
 
     def forward(self, inputs: Tensor) -> Tensor:
-
-        if inputs.ndim < 2:
-            raise InputDimError(
-                "Received inputs less than 2D. Need to be at least 2D. Wrap them around a list to make them 2D"
-            )
-
         return inputs.reshape(inputs.shape[0], np.prod(inputs.shape[1:]))
