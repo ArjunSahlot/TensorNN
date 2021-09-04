@@ -47,6 +47,15 @@ class Activation(ABC):
         :returns: the inputs after they are passed through the activation function
         """
 
+    @abstractmethod
+    def backward(self, inputs: Tensor) -> Tensor:
+        """
+        The derivative of the function. Used for backpropagation.
+
+        :param inputs: get the derivative of the function at this input
+        :returns: the derivative of the function at the given input
+        """
+
 
 class ReLU(Activation):
     """
