@@ -68,6 +68,9 @@ class ReLU(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return np.maximum(0, inputs)
 
+    def backward(self, inputs: Tensor) -> Tensor:
+        return np.where(inputs > 0, inputs, 0)
+
 
 class LeakyReLU(Activation):
     """
