@@ -66,10 +66,10 @@ class ReLU(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.maximum(0, inputs)
+        return np.where(inputs > 0, inputs, 0)
 
     def backward(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, inputs, 0)
+        return np.where(inputs > 0, 1, 0)
 
 
 class LeakyReLU(Activation):
@@ -85,11 +85,12 @@ class LeakyReLU(Activation):
         :param alpha: multiplier used in formula, checkout help(tnn.activation.LeakyReLU), defaults to 1
         :returns: nothing
         """
+        # TODO: enforce leak should be positive
 
-        self.leak = leak
+        self.leak = 0
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.maximum(inputs * self.leak, inputs)
+        return np.where(inputs > 0, inputs, inputs * self.leak)
 
 
 class ELU(Activation):
