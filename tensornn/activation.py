@@ -92,6 +92,9 @@ class LeakyReLU(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, inputs, inputs * self.leak)
 
+    def backward(self, inputs: Tensor) -> Tensor:
+        return np.where(inputs > 0, 1, self.leak)
+
 
 class ELU(Activation):
     """
