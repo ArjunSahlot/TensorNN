@@ -113,7 +113,10 @@ class ELU(Activation):
         self.alpha = alpha
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs >= 0, inputs, self.alpha * (np.exp(inputs) - 1))
+        return np.where(inputs > 0, inputs, self.alpha * (np.exp(inputs) - 1))
+
+    def backward(self, inputs: Tensor) -> Tensor:
+        return np.where(inputs > 0, 1, self.alpha * np.exp(inputs))
 
 
 class Softmax(Activation):
