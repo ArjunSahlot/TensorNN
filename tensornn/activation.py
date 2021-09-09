@@ -154,6 +154,9 @@ class Softmax(Activation):
         exp = np.exp(inputs - np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
         return exp / np.sum(exp, axis=int(inputs.ndim == 2))
 
+    def backward(self, inputs: Tensor) -> Tensor:
+        return
+
 
 class Sigmoid(Activation):
     """
@@ -162,6 +165,10 @@ class Sigmoid(Activation):
 
     def forward(self, inputs: Tensor) -> Tensor:
         return 1 / (1 + np.exp(-inputs))
+
+    def backward(self, inputs: Tensor) -> Tensor:
+        sigmoid = self.forward(inputs)
+        return sigmoid * (1 - sigmoid)
 
 
 class Swish(Activation):
