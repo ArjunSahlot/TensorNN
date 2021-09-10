@@ -178,3 +178,8 @@ class Swish(Activation):
 
     def forward(self, inputs: Tensor) -> Tensor:
         return inputs / (1 + np.exp(-inputs))
+
+    def backward(self, inputs: Tensor) -> Tensor:
+        swish = self.forward(inputs)
+        sigmoid = swish / inputs
+        return swish + sigmoid * (1 - swish)
