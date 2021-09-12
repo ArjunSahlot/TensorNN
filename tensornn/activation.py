@@ -195,3 +195,14 @@ class Swish(Activation):
         swish = self.forward(inputs)
         sigmoid = swish / inputs
         return swish + sigmoid * (1 - swish)
+
+
+class NewtonsSerpentine(Activation):
+    """
+    Haven't seen it anywhere so I am not sure if this is good but seemed like a good candidate.
+    Formula: ``(a*b*x)/(x^2+a^2)`` | a,b constants
+
+    https://mathworld.wolfram.com/SerpentineCurve.html
+    """
+
+    # TODO: add ex
