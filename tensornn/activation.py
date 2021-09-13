@@ -206,3 +206,18 @@ class NewtonsSerpentine(Activation):
     """
 
     # TODO: add ex
+
+    def __init__(self, a: float = 1, b: float = 1) -> None:
+        """
+        Initialize Newton's Serpentine. Checkout the formula by using:
+        help(tensornn.activation.NewtonsSerpentine)
+
+        :param a: constant in equation, defaults to 1
+        :param b: constant in equation, defaults to 1
+        """
+
+        self.a = a
+        self.b = b
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return (self.a * self.b * inputs) / (np.square(inputs) + np.square(self.a))
