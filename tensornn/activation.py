@@ -221,3 +221,8 @@ class NewtonsSerpentine(Activation):
 
     def forward(self, inputs: Tensor) -> Tensor:
         return (self.a * self.b * inputs) / (np.square(inputs) + np.square(self.a))
+
+    def backward(self, inputs: Tensor) -> Tensor:
+        sq_x = np.square(inputs)
+        sq_a = np.square(self.a)
+        return (self.a * self.b * (sq_a - sq_x)) / np.square(sq_x + sq_a)
