@@ -124,6 +124,7 @@ class NeuralNetwork:
         :returns: nothing
         """
 
+        # network is only registered when both of these values are assigned
         if None in (self.loss, self.optimizer):
             raise RegisteredError("NeuralNetwork is not registered")
 
