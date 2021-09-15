@@ -31,7 +31,16 @@ import numpy as np
 
 from .tensor import Tensor
 
-__all__ = ["Activation", "ReLU", "Softmax", "LeakyReLU", "ELU", "Sigmoid", "Swish"]
+__all__ = [
+    "Activation",
+    "ReLU",
+    "Softmax",
+    "LeakyReLU",
+    "ELU",
+    "Sigmoid",
+    "Swish",
+    "NewtonsSerpentine",
+]
 
 
 class Activation(ABC):
