@@ -25,6 +25,7 @@ very similar to a layer.
 #
 
 from abc import ABC, abstractmethod
+import warnings
 
 import numpy as np
 
@@ -215,6 +216,14 @@ class NewtonsSerpentine(Activation):
         :param a: constant in equation, defaults to 1
         :param b: constant in equation, defaults to 1
         """
+
+        # If a is 0
+        if not a:
+            warnings.warn("Parameter a is 0. This could result in a dead network.")
+
+        # If b is 0
+        if not b:
+            warnings.warn("Parameter b is 0. This could result in a dead network.")
 
         self.a = a
         self.b = b
