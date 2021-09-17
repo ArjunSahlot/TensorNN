@@ -37,6 +37,9 @@ __all__ = [
 ]
 
 
+# TODO: DO REPRS/STRS FOR ALL OBJECTS
+
+
 class NeuralNetwork:
     """
     Create your neural network with this class.
