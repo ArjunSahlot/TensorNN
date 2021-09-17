@@ -26,11 +26,4 @@ from . import nn
 from .utils import source
 
 
-__all__ = [
-    "Tensor",
-    "activation",
-    "loss",
-    "layers",
-    "nn",
-    "source"
-]
+__all__ = ["Tensor", "activation", "loss", "errors", "layers", "nn", "source"]
