@@ -88,14 +88,14 @@ class LeakyReLU(Activation):
     Leaky ReLU is extremely similar to ReLU. ReLU is LeakyReLU if A was 0.
     Formula: ``if x>=0, x; if x<0, Ax`` | constants: A(leak)
 
-    Ex, A=0.1 ``[12.319, -91.3, 0.132] -> [12.319, -9.13, 0.132]``
+    Ex, A=0.1: ``[12.319, -91.3, 0.132] -> [12.319, -9.13, 0.132]``
     """
 
     def __init__(self, a: float = 0.1) -> None:
         """
         Initialize LeakyReLU.
 
-        :param alpha: multiplier used in formula, checkout help(tnn.activation.LeakyReLU), defaults to 1
+        :param a: multiplier used in formula, checkout help(tnn.activation.LeakyReLU), defaults to 1
         :returns: nothing
         """
         # TODO: enforce a should be positive
@@ -113,9 +113,9 @@ class ELU(Activation):
     """
     Exponential linear unit is also a step function.
     Formula: ``A*((e^x)-1)`` | constants: A, e(Euler's number, 2.718...)
-    """
 
-    # TODO: add ex
+    Ex, A=1: ``[12.319, -91.3, 0.132] -> [12.319, -1, 0.132]``
+    """
 
     def __init__(self, a: float = 1) -> None:
         """
@@ -178,9 +178,9 @@ class Sigmoid(Activation):
     """
     The sigmoid function's output is always between -1 and 1
     Formula: ``1 / (1+e^(-x))`` | constants: e(Euler's number, 2.718...)
-    """
 
-    # TODO: add ex
+    Ex: ``[12.319, -91.3, 0.132] -> [9.99995534e-01, 2.23312895e-40, 5.32952167e-01]``
+    """
 
     def forward(self, inputs: Tensor) -> Tensor:
         return 1 / (1 + np.exp(-inputs))
@@ -194,9 +194,9 @@ class Swish(Activation):
     """
     The swish activation function is the output of the sigmoid function multiplied by x.
     Formula: ``x / (1+e^(-x))`` | constants: e(Euler's number, 2.718...)
-    """
 
-    # TODO: add ex
+    Ex: ``[12.319, -91.3, 0.132] -> [1.23189450e+01, -2.03884673e-38, 7.03496861e-02]``
+    """
 
     def forward(self, inputs: Tensor) -> Tensor:
         return inputs / (1 + np.exp(-inputs))
@@ -210,12 +210,12 @@ class Swish(Activation):
 class NewtonsSerpentine(Activation):
     """
     Haven't seen it anywhere so I am not sure if this is good but seemed like a good candidate.
-    Formula: ``(a*b*x)/(x^2+a^2)`` | a,b constants
+    Formula: ``(A*B*x)/(x^2+A^2)`` | A, B constants
+
+    Ex, A=1,B=1: ``[12.319, -91.3, 0.132] -> [0.08064402, -0.01095159, 0.12973942]``
 
     https://mathworld.wolfram.com/SerpentineCurve.html
     """
-
-    # TODO: add ex
 
     def __init__(self, a: float = 1, b: float = 1) -> None:
         """
