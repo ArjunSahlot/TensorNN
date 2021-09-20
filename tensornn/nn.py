@@ -29,7 +29,7 @@ from .layers import Layer
 from .tensor import Tensor
 from .optimizers import Optimizer
 from .loss import Loss
-from .errors import RegisteredError, TooFewLayersError, InputDimError
+from .errors import NotRegisteredError, TooFewLayersError, InputDimError
 
 
 __all__ = [
