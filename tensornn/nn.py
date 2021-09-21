@@ -129,8 +129,8 @@ class NeuralNetwork:
 
         # network is only registered when both of these values are assigned
         if None in (self.loss, self.optimizer):
-            raise RegisteredError("NeuralNetwork is not registered")
-
+            raise NotRegisteredError("NeuralNetwork is not registered")
+ 
         if inputs.ndim < 2:
             raise InputDimError(
                 "Received inputs less than 2D. Need to be at least 2D. "
