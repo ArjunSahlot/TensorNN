@@ -23,7 +23,17 @@ from . import loss
 from . import layers
 from . import nn
 
-from .utils import source
+from .utils import source, one_hot, atleast_2d
 
 
-__all__ = ["Tensor", "activation", "loss", "errors", "layers", "nn", "source"]
+__all__ = [
+    "Tensor",
+    "activation",
+    "loss",
+    "errors",
+    "layers",
+    "nn",
+    "source",
+    "one_hot",
+    "atleast_2d",
+]
