@@ -134,8 +134,11 @@ class NeuralNetwork:
         if inputs.ndim < 2:
             raise InputDimError(
                 "Received inputs less than 2D. Need to be at least 2D. "
-                "Use numpy.atleast_2d to make them 2D."
+                "Use numpy.atleast_2d to make them 2D. "
+                "tnn.atleast_2d also works if you would prefer not to import numpy."
             )
+
+        training_inp_size = min(len(inputs), len(desired_outputs))
 
         for epoch in range(epochs):
             for i in tqdm(range(len(inputs)), f"Epoch {epoch}", unit="data"):
