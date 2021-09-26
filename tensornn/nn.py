@@ -62,7 +62,6 @@ class NeuralNetwork:
         the network with this layer.
 
         :param layer: the layer to be added
-        :returns: nothing
         """
 
         if isinstance(layers, Sequence):
@@ -115,7 +114,14 @@ class NeuralNetwork:
             layer.register(curr_neurons)
             curr_neurons = layer.neurons
 
-    def train(self, inputs: Tensor, desired_outputs: Tensor, epochs: int) -> None:
+    def train(
+        self,
+        inputs: Tensor,
+        desired_outputs: Tensor,
+        epochs: int,
+        verbose: bool = True,
+        debug: bool = False,
+    ) -> None:
         """
         Train the neural network. What training essentially does is adjust the weights and
         biases of the neural network for the inputs to match the desired outputs as close
@@ -124,7 +130,10 @@ class NeuralNetwork:
         :param inputs: training data which is inputted to the network
         :param desired_outputs: these values is what you want the network to output for respective inputs
         :param epochs: how many iterations will your network will run to learn
-        :returns: nothing
+        :param verbose: print current progress of the neural network, defaults to True
+        :param debug: whether or not to output some important variables, defaults to False
+        :raises NotRegisteredError: network not registered
+        :raises InputDimError: inputs not at least 2d
         """
 
         # network is only registered when both of these values are assigned
@@ -138,8 +147,19 @@ class NeuralNetwork:
                 "tnn.atleast_2d also works if you would prefer not to import numpy."
             )
 
+        # number of training inputs have matching desired outputs
         training_inp_size = min(len(inputs), len(desired_outputs))
+        training_range = range(training_inp_size)
+        if debug:
+            print(
+                f"Training on {training_inp_size} total inputs, "
+                f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}"
+            )
 
         for epoch in range(epochs):
-            for i in tqdm(range(len(inputs)), f"Epoch {epoch}", unit="data"):
-                pass
+            r = training_range
+            if verbose:
+                r = tqdm(training_range, f"Epoch {epoch}", unit="inputs")
+            for i in r:
+                inp = inputs[i]
+                desired = desired_outputs[i]
