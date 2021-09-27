@@ -71,7 +71,6 @@ class Layer(ABC):
         to implement this.
 
         :param prev: number of neurons in previous layer
-        :returns: nothing
         """
 
 

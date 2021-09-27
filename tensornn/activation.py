@@ -96,7 +96,6 @@ class LeakyReLU(Activation):
         Initialize LeakyReLU.
 
         :param a: multiplier used in formula, checkout help(tnn.activation.LeakyReLU), defaults to 1
-        :returns: nothing
         """
         # TODO: enforce a should be positive
 
@@ -122,7 +121,6 @@ class ELU(Activation):
         Initialize ELU.
 
         :param a: multiplier used in formula, checkout help(tnn.activation.ELU), defaults to 1
-        :returns: nothing
         """
 
         self.a = a
