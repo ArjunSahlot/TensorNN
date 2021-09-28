@@ -208,6 +208,9 @@ class Swish(Activation):
 class NewtonsSerpentine(Activation):
     """
     Haven't seen it anywhere so I am not sure if this is good but seemed like a good candidate.
+    NOTE: THIS IS NOT A GOOD CANDIDATE. Larger numbers result in a lower value, meaning large doesn't
+    give them any importance. Do not use.
+
     Formula: ``(A*B*x)/(x^2+A^2)`` | A, B constants
 
     Ex, A=1,B=1: ``[12.319, -91.3, 0.132] -> [0.08064402, -0.01095159, 0.12973942]``
