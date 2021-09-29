@@ -107,7 +107,7 @@ class Dense(Layer):
         values = inputs @ self.weights + self.biases
 
         if self.activation is not None:
-            return self.activation.forward(inputs)
+            return self.activation.forward(values)
         return values
 
     def register(self, prev: int) -> None:
