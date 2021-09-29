@@ -72,13 +72,13 @@ class Loss(ABC):
         elif self.vec_type == 2 and desired.ndim == 1:
             desired = np.argmax(desired, axis=int(len(desired.shape) == 2))
 
-        return np.mean(self._pre(pred, desired))
+        return self._pre(pred, desired)
 
     @abstractmethod
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
-        Calculates the loss for one whole pass of the network. ``_pre`` runs before calculating
-        the mean and it is also required to be overridden
+        Calculates the loss for one whole pass of the network. ``_pre`` runs before manipulating
+        the input arrays to fit specific loss type and it is also required to be overridden
 
         :param pred: the prediction of the network
         :param desired: the desired values which the network should have gotten close to, one-hot
@@ -127,19 +127,19 @@ class MSE(Loss):
     Mean squared error is calculated extremely simply.
     1. Find the difference between the prediction vs. the actual results we should have got
     2. Square these values, because negatives are the same as positives, only magnitude matters
-    3. calculate means
+    3. calculate mean
 
-    ex: our predictions: ``[[0.1, 0.2, 0.7], [0.2, 0.3, 0.5]]``, desired: ``[[0, 0, 1], [0, 0, 1]]``
-    1. pred - actual: ``[[0.1, 0.2, -0.3], [0.2, 0.3, -0.5]]``
-    2. squared: ``[[0.01, 0.04, 0.09], [0.04, 0.09, 0.25]]``
-    3. means: ``[0.04666667, 0.12666667]``
+    ex: our predictions: ``[0.1, 0.2, 0.7]``, desired: ``[0, 0, 1]``
+    1. pred - actual: ``[0.1, 0.2, -0.3]`
+    2. squared: ``[0.01, 0.04, 0.09]``
+    3. mean: ``0.04666667``
     """
 
     vec_type = 1
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
-        return np.mean(squared_error, axis=int(len(squared_error.shape) != 1))
+        return np.mean(squared_error)
 
 
 class RMSE(Loss):
@@ -151,7 +151,7 @@ class RMSE(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
-        return np.sqrt(np.mean(squared_error, axis=int(len(squared_error.shape) != 1)))
+        return np.sqrt(np.mean(squared_error))
 
 
 class MAE(Loss):
@@ -163,7 +163,7 @@ class MAE(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         abs_error = np.abs(pred - desired)
-        return np.mean(abs_error, axis=int(len(abs_error.shape) != 1))
+        return np.mean(abs_error)
 
 
 class MSLE(Loss):
@@ -176,12 +176,12 @@ class MSLE(Loss):
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == -1] = 1e-15 - 1
         squared_log_error = np.square(np.log(pred + 1) - np.log(desired + 1))
-        return np.mean(squared_log_error, axis=int(len(squared_log_error.shape) != 1))
+        return np.mean(squared_log_error)
 
 
 class Poisson(Loss):
     """
-    Possion loss is calculated with this formula: average of (pred-desired*logₑpred)
+    Possion loss is calculated with this formula: average of (pred-desired*logₑ(pred))
     """
 
     vec_type = 1
@@ -189,7 +189,7 @@ class Poisson(Loss):
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == 0] = 1e-15
         error = pred - desired * np.log(pred)
-        return np.mean(error, axis=int(len(error.shape) != 1))
+        return np.mean(error)
 
 
 class SquaredHinge(Loss):
@@ -201,7 +201,7 @@ class SquaredHinge(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         error = 1 - pred * desired
-        return np.sum(np.square(np.maximum(0, error)), axis=int(len(error.shape) != 1))
+        return np.sum(np.square(np.maximum(0, error)))
 
 
 class RSS(Loss):
@@ -213,4 +213,4 @@ class RSS(Loss):
 
     def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
-        return np.sum(squared_error, axis=int(len(squared_error.shape) != 1))
+        return np.sum(squared_error)
