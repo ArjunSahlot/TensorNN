@@ -203,18 +203,29 @@ class NeuralNetwork:
 
 # stuff
 class NeuralNetwork(object):
-    def __init__(self, layers=[2, 10, 1], activations=["sigmoid", "sigmoid"]):
-        assert len(layers) == len(activations) + 1
+    def __init__(self, layers):
         self.layers = layers
-        self.activations = activations
         self.weights = []
         self.biases = []
         for i in range(len(layers) - 1):
             self.weights.append(np.random.randn(layers[i + 1], layers[i]))
             self.biases.append(np.random.randn(layers[i + 1], 1))
 
+        # weights:
+        # [
+        #    [first layer neuron, second layer neuron],
+        #    [first layer neuron, second layer neuron],
+        #    ...
+        # ]
+
+        # biases:
+        # [
+        #    [neuron],
+        #    [neuron],
+        #    ...
+        # ]
+
     def feedforward(self, x):
-        # return the feedforward value for x
         a = np.copy(x)
         z_s = []
         a_s = [a]

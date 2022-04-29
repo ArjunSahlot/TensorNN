@@ -98,6 +98,7 @@ class Dense(Layer):
             self.biases: Tensor = Tensor(np.zeros((1, num_neurons)))
         else:
             self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
+        self.weights = None  # Initialized on Layer.register()
 
         self.neurons = num_neurons
         self.activation: Optional[Activation] = activation
