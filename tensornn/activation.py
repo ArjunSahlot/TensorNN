@@ -58,7 +58,7 @@ class Activation(ABC):
         """
 
     @abstractmethod
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         """
         The derivative of the function. Used for backpropagation.
 
@@ -79,7 +79,7 @@ class ReLU(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, inputs, 0)
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, 1, 0)
 
 
@@ -104,7 +104,7 @@ class LeakyReLU(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, inputs, inputs * self.a)
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, 1, self.a)
 
 
@@ -128,7 +128,7 @@ class ELU(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, inputs, self.a * (np.exp(inputs) - 1))
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         return np.where(inputs > 0, 1, self.a * np.exp(inputs))
 
 
@@ -167,7 +167,7 @@ class Softmax(Activation):
         exp = np.exp(inputs - np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
         return exp / np.sum(exp, axis=int(inputs.ndim == 2))
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         # TODO: implement
         return
 
@@ -183,7 +183,7 @@ class Sigmoid(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return 1 / (1 + np.exp(-inputs))
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         sigmoid = self.forward(inputs)
         return sigmoid * (1 - sigmoid)
 
@@ -199,7 +199,7 @@ class Swish(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return inputs / (1 + np.exp(-inputs))
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         swish = self.forward(inputs)
         sigmoid = swish / inputs
         return swish + sigmoid * (1 - swish)
@@ -241,7 +241,7 @@ class NewtonsSerpentine(Activation):
     def forward(self, inputs: Tensor) -> Tensor:
         return (self.a * self.b * inputs) / (np.square(inputs) + np.square(self.a))
 
-    def backward(self, inputs: Tensor) -> Tensor:
+    def derivative(self, inputs: Tensor) -> Tensor:
         sq_x = np.square(inputs)
         sq_a = np.square(self.a)
         return (self.a * self.b * (sq_a - sq_x)) / np.square(sq_x + sq_a)

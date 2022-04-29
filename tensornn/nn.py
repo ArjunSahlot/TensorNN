@@ -21,14 +21,16 @@ This file contains the neural network class.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from typing import List, Optional, Sequence, Union
+from typing import Iterable, List, Optional, Sequence, Union
 import numpy as np
-from tqdm import tqdm
+from tqdm import trange
 
-from .layers import Layer
+from tensornn.activation import ReLU, Softmax
+
+from .layers import Dense, Flatten, Layer
 from .tensor import Tensor
-from .optimizers import Optimizer
-from .loss import Loss
+from .optimizers import SGD, Optimizer
+from .loss import CategoricalCrossEntropy, Loss
 from .errors import NotRegisteredError, TooFewLayersError, InputDimError
 
 
@@ -45,7 +47,7 @@ class NeuralNetwork:
     Create your neural network with this class.
     """
 
-    def __init__(self, layers: Optional[Sequence[Layer]] = ()) -> None:
+    def __init__(self, layers: Iterable[Layer] = ()) -> None:
         """
         Initialize the network.
 
@@ -56,7 +58,34 @@ class NeuralNetwork:
         self.loss: Optional[Loss] = None
         self.optimizer: Optional[Optimizer] = None
 
-    def add(self, layers: Union[Layer, Sequence[Layer]]) -> None:
+    @classmethod
+    def simple(cls, sizes: Sequence[int]):
+        """
+        Create a NeuralNetwork from the number of neurons per layer.
+        First layer will be Flatten and all hidden layers will be Dense
+        with ReLU activation. The last layer will be Dense with the Softmax
+        activation. The network will also be registered with
+        CategoricalCrossEntropy loss and the SGD optimizer.
+
+        :param sizes: list of numbers of neurons per layer
+        """
+
+        if len(sizes) < 2:
+            raise TooFewLayersError("NeuralNetwork needs at least 2 layers")
+
+        layers = []
+        layers.append(Flatten(sizes[0]))
+
+        for size in sizes[1:-1]:
+            layers.append(Dense(size, activation=ReLU()))
+
+        layers.append(Dense(sizes[-1], Softmax()))
+
+        net = cls(layers)
+        net.register(CategoricalCrossEntropy(), SGD())
+        return net
+
+    def add(self, layers: Union[Layer, Iterable[Layer]]) -> None:
         """
         Add another layer(s) to the network. This is the same as initializing
         the network with this layer.
@@ -64,7 +93,7 @@ class NeuralNetwork:
         :param layer: the layer to be added
         """
 
-        if isinstance(layers, Sequence):
+        if isinstance(layers, Iterable):
             self.layers.extend(layers)
         else:
             self.layers.append(layers)
@@ -82,7 +111,7 @@ class NeuralNetwork:
 
         return inputs
 
-    def predict(self, inputs: Tensor) -> Tensor:
+    def predict(self, inputs: Tensor) -> int:
         """
         Get the prediction of the neural network for the given input. This method should only
         be used on a trained network, because otherwise it will produce useless random values.
@@ -91,7 +120,7 @@ class NeuralNetwork:
         :returns: the index of the neuron with the highest activation
         """
 
-        return np.argmax(self.forward(inputs))
+        return int(np.argmax(self.forward(inputs)))
 
     def register(self, loss: Loss, optimizer: Optimizer) -> None:
         """
@@ -105,8 +134,8 @@ class NeuralNetwork:
         self.loss = loss
         self.optimizer = optimizer
 
-        if not self.layers:
-            raise TooFewLayersError("NeuralNetwork needs at least 1 layer")
+        if len(self.layers) < 2:
+            raise TooFewLayersError("NeuralNetwork needs at least 2 layers")
 
         # register all layers
         curr_neurons = self.layers[0].neurons
@@ -149,17 +178,140 @@ class NeuralNetwork:
 
         # number of training inputs have matching desired outputs
         training_inp_size = min(len(inputs), len(desired_outputs))
-        training_range = range(training_inp_size)
         if debug:
             print(
-                f"Training on {training_inp_size} total inputs, "
+                f"Training data length: {training_inp_size}, "
                 f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}"
             )
 
         for epoch in range(epochs):
-            r = training_range
-            if verbose:
-                r = tqdm(training_range, f"Epoch {epoch}", unit="inputs")
-            for i in r:
+            for i in trange(training_inp_size, desc=f"Epoch {epoch}", unit="inputs"):
                 inp = inputs[i]
                 desired = desired_outputs[i]
+                self._train_single(inp, desired)
+
+    def _train_single(self, inp: Tensor, desired: Tensor) -> None:
+        """
+        Not meant for external use. Only used within the NeuralNetwork class.
+
+        :param inp: the input to the network
+        :param desired: the output you want associated with the given input
+        """
+
+        pass
+
+
+# stuff
+class NeuralNetwork(object):
+    def __init__(self, layers=[2, 10, 1], activations=["sigmoid", "sigmoid"]):
+        assert len(layers) == len(activations) + 1
+        self.layers = layers
+        self.activations = activations
+        self.weights = []
+        self.biases = []
+        for i in range(len(layers) - 1):
+            self.weights.append(np.random.randn(layers[i + 1], layers[i]))
+            self.biases.append(np.random.randn(layers[i + 1], 1))
+
+    def feedforward(self, x):
+        # return the feedforward value for x
+        a = np.copy(x)
+        z_s = []
+        a_s = [a]
+        for i in range(len(self.weights)):
+            activation_function = self.getActivationFunction(self.activations[i])
+            z_s.append(self.weights[i].dot(a) + self.biases[i])
+            a = activation_function(z_s[-1])
+            a_s.append(a)
+        return (z_s, a_s)
+
+    def backpropagation(self, y, z_s, a_s):
+        dw = []  # dC/dW
+        db = []  # dC/dB
+        deltas = [None] * len(
+            self.weights
+        )  # delta = dC/dZ  known as error for each layer
+        # insert the last layer error
+        deltas[-1] = (y - a_s[-1]) * (
+            self.getDerivitiveActivationFunction(self.activations[-1])
+        )(z_s[-1])
+        # Perform BackPropagation
+        for i in reversed(range(len(deltas) - 1)):
+            deltas[i] = self.weights[i + 1].T.dot(deltas[i + 1]) * (
+                self.getDerivitiveActivationFunction(self.activations[i])(z_s[i])
+            )
+        # a= [print(d.shape) for d in deltas]
+        batch_size = y.shape[1]
+        db = [d.dot(np.ones((batch_size, 1))) / float(batch_size) for d in deltas]
+        dw = [d.dot(a_s[i].T) / float(batch_size) for i, d in enumerate(deltas)]
+        # return the derivitives respect to weight matrix and biases
+        return dw, db
+
+    def train(self, x, y, batch_size=10, epochs=100, lr=0.01):
+        # update weights and biases based on the output
+        for e in range(epochs):
+            i = 0
+            while i < len(y):
+                x_batch = x[i : i + batch_size]
+                y_batch = y[i : i + batch_size]
+                i = i + batch_size
+                z_s, a_s = self.feedforward(x_batch)
+                dw, db = self.backpropagation(y_batch, z_s, a_s)
+                self.weights = [
+                    w + lr * dweight for w, dweight in zip(self.weights, dw)
+                ]
+                self.biases = [w + lr * dbias for w, dbias in zip(self.biases, db)]
+                print("loss = {}".format(np.linalg.norm(a_s[-1] - y_batch)))
+
+    @staticmethod
+    def getActivationFunction(name):
+        if name == "sigmoid":
+            return lambda x: np.exp(x) / (1 + np.exp(x))
+        elif name == "linear":
+            return lambda x: x
+        elif name == "relu":
+
+            def relu(x):
+                y = np.copy(x)
+                y[y < 0] = 0
+                return y
+
+            return relu
+        else:
+            print("Unknown activation function. linear is used")
+            return lambda x: x
+
+    @staticmethod
+    def getDerivitiveActivationFunction(name):
+        if name == "sigmoid":
+            sig = lambda x: np.exp(x) / (1 + np.exp(x))
+            return lambda x: sig(x) * (1 - sig(x))
+        elif name == "linear":
+            return lambda x: 1
+        elif name == "relu":
+
+            def relu_diff(x):
+                y = np.copy(x)
+                y[y >= 0] = 1
+                y[y < 0] = 0
+                return y
+
+            return relu_diff
+        else:
+            print("Unknown activation function. linear is used")
+            return lambda x: 1
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    nn = NeuralNetwork([1, 100, 1], activations=["sigmoid", "sigmoid"])
+    X = 2 * np.pi * np.random.rand(1000).reshape(1, -1)
+    y = np.sin(X)
+
+    nn.train(X, y, epochs=10000, batch_size=64, lr=0.1)
+    _, a_s = nn.feedforward(X)
+    # print(y, X)
+    plt.scatter(X.flatten(), y.flatten())
+    plt.scatter(X.flatten(), a_s[-1].flatten())
+    plt.show()

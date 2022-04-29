@@ -23,8 +23,7 @@ This file contains useful variables that are used in TensorNN.
 
 import sys
 import inspect
-from io import TextIOWrapper
-from typing import Any, Sequence, Union
+from typing import Any, Iterable, Optional, TextIO, Union
 
 import numpy as np
 
@@ -34,7 +33,7 @@ from .tensor import Tensor
 __all__ = ["source", "one_hot", "atleast_2d"]
 
 
-def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout) -> str:
+def source(obj: Any, output: Optional[TextIO] = sys.stdout) -> str:
     """
     Get the source code of a TensorNN object.
 
@@ -54,7 +53,7 @@ def source(obj: Any, output: Union[TextIOWrapper, None] = sys.stdout) -> str:
     return rv
 
 
-def one_hot(values: Union[int, Sequence[int]], classes: int) -> Tensor:
+def one_hot(values: Union[int, Iterable[int]], classes: int) -> Tensor:
     """
     Get the one-hot representation of an integer. One-hot representation is like
     the opposite of np.argmax. Let's we want our network's output to be
@@ -67,9 +66,8 @@ def one_hot(values: Union[int, Sequence[int]], classes: int) -> Tensor:
     :returns: one-hot vector from the given params
     """
 
-    if isinstance(values, Sequence):
-        if not (isinstance(values, Tensor) and values.shape == ()):
-            return Tensor([one_hot(i, classes) for i in values])
+    if isinstance(values, Iterable):
+        return Tensor([one_hot(i, classes) for i in values])
     return Tensor([1 if i == values else 0 for i in range(classes)])
 
 
