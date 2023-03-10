@@ -28,13 +28,13 @@ from typing import Optional
 import numpy as np
 
 from .tensor import Tensor
-from .activation import Activation
+from .activation import Activation, NoActivation
 
 
 __all__ = [
     "Layer",
     "Dense",
-    "Flatten",
+    "flatten",
 ]
 
 
@@ -43,24 +43,37 @@ class Layer(ABC):
     Abstract base layer class. All layer classes should inherit from this.
 
     A neural network is composed of layers. A set of inputs are moved from one layer to another.
-    Each layer has its own way of calculating the output its own inputs(outputs of previous layer).
-    Some layer also have a few tweakable parameters, tweaking these parameters will allow the network
-    to learn and adapt the inputs to the correct outputs.
+    Each layer has its own way of calculating the output of its own inputs(outputs of previous layer).
+    Some layers also have a few tweakable parameters, tweaking these parameters will allow the network
+    to learn and adapt to the inputs to produce the correct outputs.
     """
 
     neurons: int
 
+    def __init__(
+        self,
+        num_neurons: int,
+        num_inputs: Optional[int] = None,
+        activation: Activation = NoActivation(),
+    ) -> None:
+        """
+        Initialize a TensorNN Layer
+
+        :param num_neurons: the number of neurons in this layer/number of outputs of this layer
+        :param num_inputs: if this is the first layer, then num_inputs must be filled out
+        :param activation: the activation function applied before the layer output is calculated, defaults to NoActivation
+        """
+        self.neurons = num_neurons
+        self.inputs = num_inputs
+        self.activation: Activation = activation
+
     @abstractmethod
     def forward(self, inputs: Tensor) -> Tensor:
         """
-        Calculate a forwards pass of this layer.
-
-        Inheritance:
-        A dense layer would connect all inputs to outputs using weights and biases, but maybe your layer
-        does something else.
+        Calculate a forwards pass of this layer, before and after activation.
 
         :param inputs: outputs from the previous layer
-        :returns: the output calculated after this layer
+        :returns: the output calculated after this layer before and after activation
         """
 
     def register(self, prev: int) -> None:
@@ -71,6 +84,7 @@ class Layer(ABC):
         to implement this.
 
         :param prev: number of neurons in previous layer
+        :returns: Nothing
         """
 
 
@@ -83,53 +97,47 @@ class Dense(Layer):
     def __init__(
         self,
         num_neurons: int,
-        activation: Optional[Activation] = None,
+        num_inputs: Optional[int] = None,
+        activation: Activation = NoActivation(),
         zero_biases: bool = True,
     ) -> None:
         """
         Initialize dense layer.
 
-        :param num_inputs: the number of neurons/outputs in the previous layer
         :param num_neurons: the number of neurons in this layer/number of outputs of this layer
+        :param num_inputs: if this is the first layer, then num_inputs must be filled out
         :param activation: the activation function applied before the layer output is calculated
         :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
+        #TODO have stuff like zero_biases go in a dictionary like config or options
         """
+        super().__init__(num_neurons, num_inputs, activation)
+
         if zero_biases:
-            self.biases: Tensor = Tensor(np.zeros((1, num_neurons)))
+            self.biases: Tensor = Tensor(np.zeros(num_neurons))
         else:
             self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
-        self.weights = None  # Initialized on Layer.register()
-
-        self.neurons = num_neurons
-        self.activation: Optional[Activation] = activation
+        
+        if num_inputs is not None:
+            self.register(num_inputs)
+        else:
+            self.weights = None  # Initialized on Layer.register()
 
     def forward(self, inputs: Tensor) -> Tensor:
         # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
         values = inputs @ self.weights + self.biases
-
-        if self.activation is not None:
-            return self.activation.forward(values)
-        return values
+        return values, self.activation.forward(values)
 
     def register(self, prev: int) -> None:
         self.weights: Tensor = Tensor(np.random.randn(prev, self.neurons))
 
+    def __repr__(self) -> str:
+        return f"TensorNN.DenseLayer(neurons={self.neurons}, activation={self.activation})"
 
-class Flatten(Layer):
+
+def flatten(inputs: Tensor) -> Tensor:
     """
     Flatten the inputs array. For example, a neural network cannot take in an image
     as input since it is 2D, so we can flatten it to make it 1D. This should be the
     first layer of the network.
     """
-
-    def __init__(self, input_neurons: int) -> None:
-        """
-        Initialize flatten layer.
-
-        :param input_neurons: how many inputs will there be to this network
-        """
-
-        self.neurons = input_neurons
-
-    def forward(self, inputs: Tensor) -> Tensor:
-        return inputs.reshape(inputs.shape[0], np.prod(inputs.shape[1:]))
+    return Tensor(inputs.reshape(np.prod(inputs.shape)))

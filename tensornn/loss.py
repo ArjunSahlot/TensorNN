@@ -7,7 +7,7 @@ information is used to improve/train it.
 #
 #  TensorNN
 #  Python machine learning library/framework made from scratch.
-#  Copyright Arjun Sahlot 2021
+#  Copyright Arjun Sahlot 2023
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .tensor import Tensor
-from .utils import one_hot
 
 
 __all__ = [
@@ -47,15 +46,9 @@ __all__ = [
 class Loss(ABC):
     """
     Base loss class. All loss classes should inherit from this.
-
-    vec_type is the type of format the loss function would prefer getting the input,
-    either 1("one-hot") or 2("int").
-    For example, MSE would prefer getting one-hot and CategoricalCrossEntropy would
-    like int
     """
 
-    vec_type: int
-
+    @abstractmethod
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         The mean of all the loss values in this batch.
@@ -65,31 +58,18 @@ class Loss(ABC):
         :returns: the average of calculated loss for one whole pass of the network
         """
 
-        # If wanted one-hot and not one-hot format
-        if self.vec_type == 1 and desired.ndim == 2:
-            desired = one_hot(desired, pred.shape[-1])
-        # Otherwise if wanted int and one-hot format
-        elif self.vec_type == 2 and desired.ndim == 1:
-            desired = np.argmax(desired, axis=int(len(desired.shape) == 2))
-
-        return self._pre(pred, desired)
-
-    @abstractmethod
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    # @abstractmethod
+    def backward():
         """
-        Calculates the loss for one whole pass of the network. ``_pre`` runs before manipulating
-        the input arrays to fit specific loss type and it is also required to be overridden
-
-        :param pred: the prediction of the network
-        :param desired: the desired values which the network should have gotten close to, one-hot
-        :returns: the calculated loss for one whole pass of the network
+        Used in backpropagation which helps calculates how much each neuron impacts the loss.
         """
+        pass
 
 
 class CategoricalCrossEntropy(Loss):
     """
     It is recommended to use the Softmax activation function with this loss.
-    Despite its long name, the way the categorical cross entropy loss is calculated is simple.
+    Despite its long name, the way that categorical cross entropy loss is calculated is simple.
 
     Let's say our prediction (after softmax) is ``[0.7, 0.2, 0.1]``, and the desired values are
     ``[1, 0, 0]``. We can simply get the prediction number at the index of the ``1`` in the desired
@@ -99,12 +79,9 @@ class CategoricalCrossEntropy(Loss):
     Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math.
     """
 
-    vec_type = 2
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
-        true_pred = pred[..., desired]
-        return -np.log(true_pred)
+        return -np.log(pred[np.argmax(desired)])
 
 
 class BinaryCrossEntropy(Loss):
@@ -115,9 +92,7 @@ class BinaryCrossEntropy(Loss):
     Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
         return -(desired * np.log(pred) + (1 - desired) * np.log(1 - pred))
 
@@ -135,9 +110,7 @@ class MSE(Loss):
     3. mean: ``0.04666667``
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
         return np.mean(squared_error)
 
@@ -147,9 +120,7 @@ class RMSE(Loss):
     Root mean squared error is just MSE, but it includes a square root after taking the average.
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
         return np.sqrt(np.mean(squared_error))
 
@@ -159,9 +130,7 @@ class MAE(Loss):
     Mean absolute error is MSE but instead of squaring the values, you absolute value them.
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         abs_error = np.abs(pred - desired)
         return np.mean(abs_error)
 
@@ -171,9 +140,7 @@ class MSLE(Loss):
     Mean squared logarithmic error is MSE but taking the log of our values before subtraction.
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == -1] = 1e-15 - 1
         squared_log_error = np.square(np.log(pred + 1) - np.log(desired + 1))
         return np.mean(squared_log_error)
@@ -181,12 +148,10 @@ class MSLE(Loss):
 
 class Poisson(Loss):
     """
-    Possion loss is calculated with this formula: average of (pred-desired*logₑ(pred))
+    Poisson loss is calculated with this formula: average of (pred-desired*logₑ(pred))
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == 0] = 1e-15
         error = pred - desired * np.log(pred)
         return np.mean(error)
@@ -197,9 +162,7 @@ class SquaredHinge(Loss):
     Square hinge loss is calculated with this formula: max(0, 1-pred*desired)^2
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         error = 1 - pred * desired
         return np.sum(np.square(np.maximum(0, error)))
 
@@ -209,8 +172,6 @@ class RSS(Loss):
     Residual sum of squares loss is MSE but instead of doing the mean, you do the sum.
     """
 
-    vec_type = 1
-
-    def _pre(self, pred: Tensor, desired: Tensor) -> Tensor:
+    def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
         return np.sum(squared_error)

@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "TensorNN"
-copyright = "2021, Arjun Sahlot"
+copyright = "2023, Arjun Sahlot"
 author = "Arjun Sahlot"
 
 # The full version, including alpha/beta/rc tags

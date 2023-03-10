@@ -21,17 +21,17 @@ This file contains the neural network class.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from typing import Iterable, List, Optional, Sequence, Union
+from typing import Iterable, List, Optional, Sequence, Union, Tuple
 import numpy as np
 from tqdm import trange
 
 from tensornn.activation import ReLU, Softmax
 
-from .layers import Dense, Flatten, Layer
+from .layers import Dense, Layer, flatten
 from .tensor import Tensor
 from .optimizers import SGD, Optimizer
 from .loss import CategoricalCrossEntropy, Loss
-from .errors import NotRegisteredError, TooFewLayersError, InputDimError
+from .errors import NotRegisteredError, InputDimError, InitializationError
 
 
 __all__ = [
@@ -53,7 +53,6 @@ class NeuralNetwork:
 
         :param layers: list of layers that make up network
         """
-
         self.layers: List[Layer] = list(layers)
         self.loss: Optional[Loss] = None
         self.optimizer: Optional[Optimizer] = None
@@ -62,24 +61,22 @@ class NeuralNetwork:
     def simple(cls, sizes: Sequence[int]):
         """
         Create a NeuralNetwork from the number of neurons per layer.
-        First layer will be Flatten and all hidden layers will be Dense
-        with ReLU activation. The last layer will be Dense with the Softmax
-        activation. The network will also be registered with
+        First layer will be considered the input layer. All layers will be the
+        Dense layer with the ReLU activation. The last layer will be Dense with
+        the Softmax activation. The network will also be registered with
         CategoricalCrossEntropy loss and the SGD optimizer.
 
         :param sizes: list of numbers of neurons per layer
         """
-
-        if len(sizes) < 2:
-            raise TooFewLayersError("NeuralNetwork needs at least 2 layers")
+        
+        if len(sizes) < 3:
+            raise InitializationError("NeuralNetwork needs at least 2 layers, excluding input layer")
 
         layers = []
-        layers.append(Flatten(sizes[0]))
-
-        for size in sizes[1:-1]:
+        layers.append(Dense(sizes[1], num_inputs=sizes[0], activation=ReLU()))
+        for size in sizes[2:-1]:
             layers.append(Dense(size, activation=ReLU()))
-
-        layers.append(Dense(sizes[-1], Softmax()))
+        layers.append(Dense(sizes[-1], activation=Softmax()))
 
         net = cls(layers)
         net.register(CategoricalCrossEntropy(), SGD())
@@ -88,7 +85,7 @@ class NeuralNetwork:
     def add(self, layers: Union[Layer, Iterable[Layer]]) -> None:
         """
         Add another layer(s) to the network. This is the same as initializing
-        the network with this layer.
+        the network with this layer included.
 
         :param layer: the layer to be added
         """
@@ -100,16 +97,42 @@ class NeuralNetwork:
 
     def forward(self, inputs: Tensor) -> Tensor:
         """
-        Get the output of the neural network.
+        Get the output of the neural network. Automatically flattens the inputs.
 
         :param inputs: inputs to the network
-        :returns: output of network after being passed through all layers
+        :returns: the output of every layer in the network
         """
+        inputs = flatten(inputs)
+        raw_outputs = []
+        activated_outputs = [inputs]
+
+        if len(inputs) != self.layers[0].inputs:
+            raise InputDimError(
+                "Input shape does not match the number of neurons in the first layer. "
+                f"Number of inputs: {len(inputs)}, first layer neurons: {self.layers[0].inputs}"
+            )
 
         for layer in self.layers:
-            inputs = layer.forward(inputs)
+            z, a = layer.forward(activated_outputs[-1])
+            raw_outputs.append(z)
+            activated_outputs.append(a)
 
-        return inputs
+        return raw_outputs, activated_outputs
+
+    def get_loss(self, inputs: Tensor, desired_outputs: Tensor) -> Tensor:
+        """
+        Calculate the loss for the given data.
+
+        :param inputs: input to the network
+        :param desired_outputs: desired output of the network for the given inputs
+        :returns: the loss of the network for the given parameters
+        """
+
+        if None in (self.loss, self.optimizer):
+            raise NotRegisteredError("Network needs to be registered in order to use Network.get_loss")
+
+        pred = self.forward(inputs)[1][-1]
+        return self.loss.calculate(pred, desired_outputs)
 
     def predict(self, inputs: Tensor) -> int:
         """
@@ -117,10 +140,9 @@ class NeuralNetwork:
         be used on a trained network, because otherwise it will produce useless random values.
 
         :param inputs: inputs to the network
-        :returns: the index of the neuron with the highest activation
+        :returns: an array which contains the value of each neuron in the last layer
         """
-
-        return int(np.argmax(self.forward(inputs)))
+        return self.forward(inputs)[1][-1]
 
     def register(self, loss: Loss, optimizer: Optimizer) -> None:
         """
@@ -129,15 +151,16 @@ class NeuralNetwork:
 
         :param loss: type of loss this network uses to calculate loss
         :param optimizer: type of optimizer this network uses
+        :raises InitializationError: num_inputs not specified to first layer
         """
 
         self.loss = loss
         self.optimizer = optimizer
 
-        if len(self.layers) < 2:
-            raise TooFewLayersError("NeuralNetwork needs at least 2 layers")
-
         # register all layers
+        if self.layers[0].inputs is None:
+            raise InitializationError("First layer must be specified with num_inputs")
+
         curr_neurons = self.layers[0].neurons
         for layer in self.layers[1:]:
             layer.register(curr_neurons)
@@ -147,7 +170,8 @@ class NeuralNetwork:
         self,
         inputs: Tensor,
         desired_outputs: Tensor,
-        epochs: int,
+        batch_size: int = 32,
+        epochs: int = 5,
         verbose: bool = True,
         debug: bool = False,
     ) -> None:
@@ -188,19 +212,20 @@ class NeuralNetwork:
             for i in trange(training_inp_size, desc=f"Epoch {epoch}", unit="inputs"):
                 inp = inputs[i]
                 desired = desired_outputs[i]
-                self._train_single(inp, desired)
-
-    def _train_single(self, inp: Tensor, desired: Tensor) -> None:
+    
+    def backpropagation(self):
         """
-        Not meant for external use. Only used within the NeuralNetwork class.
-
-        :param inp: the input to the network
-        :param desired: the output you want associated with the given input
+        Find out how much each weight/bias contributes to the loss. Not meant for external use.
         """
 
-        pass
+        outputs = self.forward(self.inputs)
+    
+    def __repr__(self):
+        layers = "\n\t" + ",\n\t".join([str(l) for l in self.layers]) + "\n"
+        return f"tnn.NeuralNetwork[inputs={self.layers[0].inputs}, layers={len(self.layers)}]({layers})"
 
 
+"""
 # stuff
 class NeuralNetwork(object):
     def __init__(self, layers):
@@ -213,16 +238,50 @@ class NeuralNetwork(object):
 
         # weights:
         # [
-        #    [first layer neuron, second layer neuron],
-        #    [first layer neuron, second layer neuron],
+        #    [first layer neurons -> l2n1 weights],
+        #    [first layer neurons -> l2n2 weights],
+        #    ...8 times total
+        # ]
+        # ex:
+        # [
+        #    [a1, b1],
+        #    [a2, b2],
         #    ...
+        #    [a8, b8]
+        # ]
+        #
+        # current:
+        # [
+        #    [l1n1 -> second layer neurons weights],
+        #    [l1n2 -> second layer neurons weights]
+        # ]
+        # ex:
+        # [
+        #    [a1, a2, a3, a4, a5, a6, a7, a8],
+        #    [b1, b2, b3, b4, b5, b6, b7, b8]
         # ]
 
         # biases:
         # [
-        #    [neuron],
-        #    [neuron],
+        #    [each second layer neuron has unique bias],
+        #    [l2n2 has unique bias],
+        #    ...8 times total
+        # ]
+        # ex
+        # [
+        #    [b1],
+        #    [b2],
         #    ...
+        #    [b8]
+        # ]
+        #
+        # current:
+        # [
+        #    [all biases of second layer]
+        # ]
+        # ex:
+        # [
+        #    [b1, b2, b3, b4, b5, b6, b7, b8]
         # ]
 
     def feedforward(self, x):
@@ -326,3 +385,4 @@ if __name__ == "__main__":
     plt.scatter(X.flatten(), y.flatten())
     plt.scatter(X.flatten(), a_s[-1].flatten())
     plt.show()
+"""

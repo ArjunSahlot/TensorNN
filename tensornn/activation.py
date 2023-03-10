@@ -33,6 +33,7 @@ from .tensor import Tensor
 
 __all__ = [
     "Activation",
+    "NoActivation",
     "ReLU",
     "Softmax",
     "LeakyReLU",
@@ -67,6 +68,21 @@ class Activation(ABC):
         """
 
 
+class NoActivation(Activation):
+    """
+    Empty activation function, does nothing. Use this if you don't want an activation.
+    """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return Tensor(inputs)
+    
+    def derivative(self, inputs: Tensor) -> Tensor:
+        return Tensor([1] * len(inputs))
+
+    def __repr__(self) -> str:
+        return "TensorNN.NoActivation"
+
+
 class ReLU(Activation):
     """
     The rectified linear unit activation function is one of the simplest activation function. It is
@@ -77,10 +93,13 @@ class ReLU(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, inputs, 0)
+        return Tensor(np.where(inputs > 0, inputs, 0))
 
     def derivative(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, 1, 0)
+        return Tensor(np.where(inputs > 0, 1, 0))
+
+    def __repr__(self) -> str:
+        return "TensorNN.ReLU"
 
 
 class LeakyReLU(Activation):
@@ -102,10 +121,13 @@ class LeakyReLU(Activation):
         self.a = 0
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, inputs, inputs * self.a)
+        return Tensor(np.where(inputs > 0, inputs, inputs * self.a))
 
     def derivative(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, 1, self.a)
+        return Tensor(np.where(inputs > 0, 1, self.a))
+
+    def __repr__(self) -> str:
+        return f"TensorNN.LeakyReLU(a={self.a})"
 
 
 class ELU(Activation):
@@ -126,10 +148,13 @@ class ELU(Activation):
         self.a = a
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, inputs, self.a * (np.exp(inputs) - 1))
+        return Tensor(np.where(inputs > 0, inputs, self.a * (np.exp(inputs) - 1)))
 
     def derivative(self, inputs: Tensor) -> Tensor:
-        return np.where(inputs > 0, 1, self.a * np.exp(inputs))
+        return Tensor(np.where(inputs > 0, 1, self.a * np.exp(inputs)))
+
+    def __repr__(self) -> str:
+        return f"TensorNN.ELU(a={self.a})"
 
 
 class Softmax(Activation):
@@ -165,11 +190,14 @@ class Softmax(Activation):
 
     def forward(self, inputs: Tensor) -> Tensor:
         exp = np.exp(inputs - np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
-        return exp / np.sum(exp, axis=int(inputs.ndim == 2))
+        return Tensor(exp / np.sum(exp, axis=int(inputs.ndim == 2)))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         # TODO: implement
         return
+
+    def __repr__(self) -> str:
+        return f"TensorNN.Softmax"
 
 
 class Sigmoid(Activation):
@@ -181,11 +209,14 @@ class Sigmoid(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return 1 / (1 + np.exp(-inputs))
+        return Tensor(1 / (1 + np.exp(-inputs)))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         sigmoid = self.forward(inputs)
-        return sigmoid * (1 - sigmoid)
+        return Tensor(sigmoid * (1 - sigmoid))
+
+    def __repr__(self) -> str:
+        return f"TensorNN.Sigmoid"
 
 
 class Swish(Activation):
@@ -197,12 +228,15 @@ class Swish(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return inputs / (1 + np.exp(-inputs))
+        return Tensor(inputs / (1 + np.exp(-inputs)))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         swish = self.forward(inputs)
         sigmoid = swish / inputs
-        return swish + sigmoid * (1 - swish)
+        return Tensor(swish + sigmoid * (1 - swish))
+
+    def __repr__(self) -> str:
+        return f"TensorNN.Swish"
 
 
 class NewtonsSerpentine(Activation):
@@ -239,9 +273,12 @@ class NewtonsSerpentine(Activation):
         self.b = b
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return (self.a * self.b * inputs) / (np.square(inputs) + np.square(self.a))
+        return Tensor((self.a * self.b * inputs) / (np.square(inputs) + np.square(self.a)))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         sq_x = np.square(inputs)
         sq_a = np.square(self.a)
-        return (self.a * self.b * (sq_a - sq_x)) / np.square(sq_x + sq_a)
+        return Tensor((self.a * self.b * (sq_a - sq_x)) / np.square(sq_x + sq_a))
+
+    def __repr__(self) -> str:
+        return f"TensorNN.NewtonsSerpentine(a={self.a}, b={self.b})"

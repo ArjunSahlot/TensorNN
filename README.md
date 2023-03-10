@@ -8,4 +8,4 @@
 ![](https://img.shields.io/pypi/pyversions/TensorNN)
 ![](https://img.shields.io/pypi/dm/TensorNN)
 
-Note: Still in development
+## UNDER HEAVY DEVELOPMENT, UNUSABLE
