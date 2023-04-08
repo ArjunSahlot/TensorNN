@@ -25,12 +25,12 @@ from typing import Iterable, List, Optional, Sequence, Union, Tuple
 import numpy as np
 from tqdm import trange
 
-from tensornn.activation import ReLU, Softmax
+from tensornn.activation import ReLU, NoActivation
 
 from .layers import Dense, Layer, flatten
 from .tensor import Tensor
 from .optimizers import SGD, Optimizer
-from .loss import CategoricalCrossEntropy, Loss
+from .loss import MSE, Loss
 from .errors import NotRegisteredError, InputDimError, InitializationError
 
 
@@ -73,13 +73,13 @@ class NeuralNetwork:
             raise InitializationError("NeuralNetwork needs at least 2 layers, excluding input layer")
 
         layers = []
-        layers.append(Dense(sizes[1], num_inputs=sizes[0], activation=ReLU()))
+        layers.append(Dense(sizes[1], num_inputs=np.prod(sizes[0]), activation=ReLU()))
         for size in sizes[2:-1]:
             layers.append(Dense(size, activation=ReLU()))
-        layers.append(Dense(sizes[-1], activation=Softmax()))
+        layers.append(Dense(sizes[-1], activation=NoActivation()))
 
         net = cls(layers)
-        net.register(CategoricalCrossEntropy(), SGD())
+        net.register(MSE(), SGD())
         return net
 
     def add(self, layers: Union[Layer, Iterable[Layer]]) -> None:
@@ -97,7 +97,28 @@ class NeuralNetwork:
 
     def forward(self, inputs: Tensor) -> Tensor:
         """
-        Get the output of the neural network. Automatically flattens the inputs.
+        Propagate the inputs through the network and return the last layer's output.
+        Automatically flattens the input.
+
+        :param inputs: inputs to the network
+        :returns: the output of the last layer in the network
+        """
+        inputs = flatten(inputs)
+        
+        if len(inputs) != self.layers[0].inputs:
+            raise InputDimError(
+                "Input shape does not match the number of neurons in the first layer. "
+                f"Number of inputs: {len(inputs)}, first layer neurons: {self.layers[0].inputs}"
+            )
+
+        for layer in self.layers:
+            _, inputs = layer.forward(inputs)
+
+        return inputs
+
+    def outputs(self, inputs: Tensor) -> Tensor:
+        """
+        Get the output of the neural network for every layer. Not meant for external use.
 
         :param inputs: inputs to the network
         :returns: the output of every layer in the network
@@ -202,27 +223,56 @@ class NeuralNetwork:
 
         # number of training inputs have matching desired outputs
         training_inp_size = min(len(inputs), len(desired_outputs))
+        inputs = inputs[:training_inp_size]
+        desired_outputs = desired_outputs[:training_inp_size]
+        minibatches = zip(np.array_split(inputs, batch_size), np.array_split(desired_outputs, batch_size))
         if debug:
             print(
                 f"Training data length: {training_inp_size}, "
-                f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}"
+                f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
+                f"Total {len(minibatches)} minibatches, each with {batch_size} inputs"
             )
+
+        input_batches = np.array_split(inputs, batch_size)
+        output_batches = np.array_split(desired_outputs, batch_size)
 
         for epoch in range(epochs):
             for i in trange(training_inp_size, desc=f"Epoch {epoch}", unit="inputs"):
                 inp = inputs[i]
                 desired = desired_outputs[i]
     
-    def backpropagation(self):
+    def backpropagation(self, inputs, desired):
         """
         Find out how much each weight/bias contributes to the loss. Not meant for external use.
         """
+        impacts_w = [np.zeros(l.weights.shape) for l in self.layers]
+        impacts_b = [np.zeros(l.biases.shape) for l in self.layers]
 
-        outputs = self.forward(self.inputs)
-    
+        raw, activated = self.outputs(inputs)
+        print(raw[-1])
+        print(activated[-1])
+        print(self.layers[-1].activation.derivative(raw[-1]))
+        print(self.loss.derivative(activated[-1], desired))
+        delta = self.layers[-1].activation.derivative(raw[-1])*self.loss.derivative(activated[-1], desired)
+        impacts_w[-1] = np.dot(delta, activated[-2].T)
+        impacts_b[-1] = delta
+
+        for l in range(-2, -len(self.layers), -1):
+            pre_act = raw[l]
+            act_deriv = self.layers[l].activation.derivative(pre_act)
+            delta = np.dot(self.layers[l+1].weights.T, delta)*act_deriv
+            impacts_w[l] = np.dot(delta, activated[l-1].T)
+            impacts_b[l] = delta
+
+        return impacts_w, impacts_b
+
     def __repr__(self):
         layers = "\n\t" + ",\n\t".join([str(l) for l in self.layers]) + "\n"
         return f"tnn.NeuralNetwork[inputs={self.layers[0].inputs}, layers={len(self.layers)}]({layers})"
+    
+    def __add__(self, layer: Layer):
+        self.layers.append(layer)
+        return self
 
 
 """

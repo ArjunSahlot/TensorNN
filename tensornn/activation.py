@@ -70,14 +70,14 @@ class Activation(ABC):
 
 class NoActivation(Activation):
     """
-    Empty activation function, does nothing. Use this if you don't want an activation.
+    Linear activation function, doesn't change anything. Use this if you don't want an activation.
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        return Tensor(inputs)
+        return inputs
     
     def derivative(self, inputs: Tensor) -> Tensor:
-        return Tensor([1] * len(inputs))
+        return np.ones(inputs.shape)
 
     def __repr__(self) -> str:
         return "TensorNN.NoActivation"
@@ -104,7 +104,7 @@ class ReLU(Activation):
 
 class LeakyReLU(Activation):
     """
-    Leaky ReLU is extremely similar to ReLU. ReLU is LeakyReLU if A was 0.
+    Leaky ReLU is extremely similar to ReLU. ReLU is LeakyReLU if A was 1.
     Formula: ``if x>=0, x; if x<0, Ax`` | constants: A(leak)
 
     Ex, A=0.1: ``[12.319, -91.3, 0.132] -> [12.319, -9.13, 0.132]``
@@ -118,7 +118,7 @@ class LeakyReLU(Activation):
         """
         # TODO: enforce a should be positive
 
-        self.a = 0
+        self.a = a
 
     def forward(self, inputs: Tensor) -> Tensor:
         return Tensor(np.where(inputs > 0, inputs, inputs * self.a))
@@ -159,7 +159,11 @@ class ELU(Activation):
 
 class Softmax(Activation):
     """
-    The softmax activation function is most commonly used in the output layer.
+    The softmax activation function is most commonly used in the output layer. If you are using this activation
+    function, you should be using tnn.CategoricalCrossEntropy as your loss function. This is because the softmax
+    function always generates a probability distribution with all values between 0 and 1, and for these types
+    of values, tnn.CategoricalCrossEntropy is the best loss function to use.
+
     The goal of softmax is to convert the predicted values of the network into percentages that add up to 1.
     Ex. it converts [-1.42, 3.312, 0.192] to [0.00835, 0.94970, 0.41935] which is much easier to understand.
 
@@ -189,8 +193,9 @@ class Softmax(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        exp = np.exp(inputs - np.max(inputs, axis=int(inputs.ndim == 2), keepdims=True))
-        return Tensor(exp / np.sum(exp, axis=int(inputs.ndim == 2)))
+        axis = int(inputs.ndim == 2)
+        exp = np.exp(inputs - np.max(inputs, axis=axis, keepdims=True))
+        return Tensor(exp / np.sum(exp, axis=axis, keepdims=True))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         # TODO: implement
@@ -242,8 +247,8 @@ class Swish(Activation):
 class NewtonsSerpentine(Activation):
     """
     Haven't seen it anywhere so I am not sure if this is good but seemed like a good candidate.
-    NOTE: THIS IS NOT A GOOD CANDIDATE. Larger numbers result in a lower value, meaning large doesn't
-    give them any importance. Do not use.
+    NOTE: THIS IS NOT A GOOD CANDIDATE. Larger numbers result in a lower value, which means being
+    large doesn't give importance. Do not use unless you want to have some fun ;)
 
     Formula: ``(A*B*x)/(x^2+A^2)`` | A, B constants
 

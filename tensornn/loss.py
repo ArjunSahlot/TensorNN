@@ -59,11 +59,10 @@ class Loss(ABC):
         """
 
     # @abstractmethod
-    def backward():
+    def derivative():
         """
         Used in backpropagation which helps calculates how much each neuron impacts the loss.
         """
-        pass
 
 
 class CategoricalCrossEntropy(Loss):
@@ -81,7 +80,11 @@ class CategoricalCrossEntropy(Loss):
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
-        return -np.log(pred[np.argmax(desired)])
+        loss = np.log(pred[np.arange(desired.shape[0]), np.argmax(desired, axis=1)])
+        return -np.mean(loss)
+
+    def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return -desired/pred.clip(1e-15, 1 - 1e-15)
 
 
 class BinaryCrossEntropy(Loss):
@@ -113,6 +116,9 @@ class MSE(Loss):
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
         return np.mean(squared_error)
+
+    def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
+        return (2/np.prod(desired.shape)) * (desired - pred)
 
 
 class RMSE(Loss):

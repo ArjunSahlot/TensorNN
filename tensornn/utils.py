@@ -30,7 +30,7 @@ import numpy as np
 from .tensor import Tensor
 
 
-__all__ = ["source", "one_hot", "atleast_2d"]
+__all__ = ["source", "one_hot", "normalize", "atleast_2d"]
 
 
 def source(obj: Any, output: Optional[TextIO] = sys.stdout) -> str:
@@ -71,4 +71,19 @@ def one_hot(values: Union[int, Iterable[int]], classes: int) -> Tensor:
     return Tensor([1 if i == values else 0 for i in range(classes)])
 
 
+def normalize(data):
+    """
+    Normalize the training data. This will never hurt your data, it will always help it, make sure
+    to use this every time. This function will make it so that the largest value
+    in the data is 1.
+
+    :param data: training data to the network
+    :returns: normalized data, max is 1
+    """
+
+    return data / np.max(data)
+
+
+# def partial_derivative(func, *args):
+    
 atleast_2d = np.atleast_2d

@@ -121,11 +121,24 @@ class Dense(Layer):
             self.register(num_inputs)
         else:
             self.weights = None  # Initialized on Layer.register()
+        
+        # Used for backpropagation
+        self.inputs: Tensor = Tensor()
+        self.d_weights: Tensor = Tensor()
+        self.d_biases: Tensor = Tensor()
 
     def forward(self, inputs: Tensor) -> Tensor:
         # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
+        self.inputs = inputs
         values = inputs @ self.weights + self.biases
         return values, self.activation.forward(values)
+    
+    def backward(self, deriv_cost: Tensor) -> Tensor:
+        deriv_cost = self.activation.backward(self.inputs @ self.weights + self.biases)
+
+        self.d_weights = self.inputs.T @ deriv_cost
+        self.d_biases = np.sum(deriv_cost, axis=0, keepdims=True)
+        return deriv_cost @ self.weights.T
 
     def register(self, prev: int) -> None:
         self.weights: Tensor = Tensor(np.random.randn(prev, self.neurons))
