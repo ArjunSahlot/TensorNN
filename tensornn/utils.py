@@ -24,6 +24,7 @@ This file contains useful variables that are used in TensorNN.
 import sys
 import inspect
 from typing import Any, Iterable, Optional, TextIO, Union
+from functools import wraps
 
 import numpy as np
 
@@ -38,8 +39,6 @@ def source(obj: Any, output: Optional[TextIO] = sys.stdout) -> str:
     Get the source code of a TensorNN object.
 
     :param obj: the tensornn object, ex: tnn.nn.NeuralNetwork
-    :param output: file to output to
-    :returns: the source code of the given object
     """
 
     try:
@@ -57,18 +56,66 @@ def one_hot(values: Union[int, Iterable[int]], classes: int) -> Tensor:
     """
     Get the one-hot representation of an integer. One-hot representation is like
     the opposite of np.argmax. Let's we want our network's output to be
-    [0, 1](second neuron lit up, other neuron not), that would be the 'one-hot vector'.
+    [0, 1](first neuron on, second off), that would be the 'one-hot vector'.
     If you were to run np.argmax([0, 1]), you would get the index of the 1(which is also
     the index of the max value).
 
-    :param values: to be converted to one-hot, ex one_hot(3, 5) -> [0, 0, 0, 1, 0]
+    :param values: to be converted to one-hot (max 1D), ex: one_hot(3, 5) -> [0, 0, 0, 1, 0]
     :param classes: number of different places for the 1, len of one-hot
     :returns: one-hot vector from the given params
     """
 
-    if isinstance(values, Iterable):
-        return Tensor([one_hot(i, classes) for i in values])
-    return Tensor([1 if i == values else 0 for i in range(classes)])
+    arr = []
+
+    if isinstance(values, int):
+        arr = np.zeros(classes, dtype=int)
+        arr[values] = 1
+    else:
+        if len(np.array(values).shape) > 1:
+            raise ValueError("Values for one-hot exceed 2 dimensions")
+        arr = np.zeros((len(values), classes), dtype=int)
+        arr[np.arange(len(values)), values] = 1
+    return arr
+
+
+def takes_one_hot(pos: int = 2):
+    """
+    Apply this decorator to a function that takes in a one-hot vector. Used for loss functions.
+
+    :param pos: position of the argument to convert to one-hot vector, default 2 for loss functions
+    :returns: decorator
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if len(args[pos].shape) == 1:
+                args = list(args)
+                args[pos] = one_hot(args[pos], args[pos-1].shape[1])
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
+
+def takes_single_value(pos: int = 1):
+    """
+    Apply this decorator to a function that takes in a single value. Used for loss functions.
+
+    :param pos: position of the argument to convert to single value, default 1 for loss functions
+    :returns: decorator
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if len(args[pos].shape) > 1:
+                args = list(args)
+                args[pos] = np.argmax(args[pos], axis=1)
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
 
 
 def normalize(data):

@@ -28,6 +28,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .tensor import Tensor
+from .utils import takes_one_hot, takes_single_value
 
 
 __all__ = [
@@ -59,9 +60,13 @@ class Loss(ABC):
         """
 
     # @abstractmethod
-    def derivative():
+    def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
         Used in backpropagation which helps calculates how much each neuron impacts the loss.
+
+        :param pred: the prediction of the network
+        :param desired: the desired values which the network should have gotten close to
+        :returns: the derivative of the loss function wrt the last layer of the network
         """
 
 
@@ -78,11 +83,13 @@ class CategoricalCrossEntropy(Loss):
     Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math.
     """
 
+    @takes_single_value()
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
-        loss = np.log(pred[np.arange(desired.shape[0]), np.argmax(desired, axis=1)])
+        loss = np.log(pred[..., desired])
         return -np.mean(loss)
 
+    @takes_one_hot()
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
         return -desired/pred.clip(1e-15, 1 - 1e-15)
 
@@ -113,10 +120,12 @@ class MSE(Loss):
     3. mean: ``0.04666667``
     """
 
+    @takes_one_hot()
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         squared_error = np.square(pred - desired)
         return np.mean(squared_error)
 
+    @takes_one_hot()
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
         return (2/np.prod(desired.shape)) * (desired - pred)
 
