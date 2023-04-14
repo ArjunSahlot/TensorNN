@@ -23,7 +23,7 @@ This file contains the neural network class.
 
 from typing import Iterable, List, Optional, Sequence, Union, Tuple
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from tensornn.activation import ReLU, NoActivation
 
@@ -105,10 +105,10 @@ class NeuralNetwork:
         """
         inputs = flatten(inputs)
         
-        if len(inputs) != self.layers[0].inputs:
+        if inputs.shape[1] != self.layers[0].num_inputs:
             raise InputDimError(
                 "Input shape does not match the number of neurons in the first layer. "
-                f"Number of inputs: {len(inputs)}, first layer neurons: {self.layers[0].inputs}"
+                f"Number of inputs: {inputs.shape[1]}, input layer neurons: {self.layers[0].num_inputs}"
             )
 
         for layer in self.layers:
@@ -116,81 +116,22 @@ class NeuralNetwork:
 
         return inputs
 
-    def outputs(self, inputs: Tensor) -> Tensor:
+    def backward(self, loss_deriv: Tensor) -> None:
         """
-        Get the output of the neural network for every layer. Not meant for external use.
-
-        :param inputs: inputs to the network
-        :returns: the output of every layer in the network
+        Find out how much each weight/bias contributes to the loss and gets stored in each layer.
+        Not meant for external use.
+        
+        :param loss_deriv: the derivative of the loss wrt the output of the last layer
+        :returns: nothing
         """
-        inputs = flatten(inputs)
-        raw_outputs = []
-        activated_outputs = [inputs]
-
-        if len(inputs) != self.layers[0].inputs:
-            raise InputDimError(
-                "Input shape does not match the number of neurons in the first layer. "
-                f"Number of inputs: {len(inputs)}, first layer neurons: {self.layers[0].inputs}"
-            )
-
-        for layer in self.layers:
-            z, a = layer.forward(activated_outputs[-1])
-            raw_outputs.append(z)
-            activated_outputs.append(a)
-
-        return raw_outputs, activated_outputs
-
-    def get_loss(self, inputs: Tensor, desired_outputs: Tensor) -> Tensor:
-        """
-        Calculate the loss for the given data.
-
-        :param inputs: input to the network
-        :param desired_outputs: desired output of the network for the given inputs
-        :returns: the loss of the network for the given parameters
-        """
-
-        if None in (self.loss, self.optimizer):
-            raise NotRegisteredError("Network needs to be registered in order to use Network.get_loss")
-
-        pred = self.forward(inputs)[1][-1]
-        return self.loss.calculate(pred, desired_outputs)
-
-    def predict(self, inputs: Tensor) -> int:
-        """
-        Get the prediction of the neural network for the given input. This method should only
-        be used on a trained network, because otherwise it will produce useless random values.
-
-        :param inputs: inputs to the network
-        :returns: an array which contains the value of each neuron in the last layer
-        """
-        return self.forward(inputs)[1][-1]
-
-    def register(self, loss: Loss, optimizer: Optimizer) -> None:
-        """
-        Register the neural network. This method initializes the network with loss and optimizer
-        and also finishes up any last touches to its layers.
-
-        :param loss: type of loss this network uses to calculate loss
-        :param optimizer: type of optimizer this network uses
-        :raises InitializationError: num_inputs not specified to first layer
-        """
-
-        self.loss = loss
-        self.optimizer = optimizer
-
-        # register all layers
-        if self.layers[0].inputs is None:
-            raise InitializationError("First layer must be specified with num_inputs")
-
-        curr_neurons = self.layers[0].neurons
-        for layer in self.layers[1:]:
-            layer.register(curr_neurons)
-            curr_neurons = layer.neurons
+        for layer in reversed(self.layers):
+            loss_deriv = layer.backward(loss_deriv)
 
     def train(
         self,
         inputs: Tensor,
         desired_outputs: Tensor,
+        learning_rate: float = 0.01,
         batch_size: int = 32,
         epochs: int = 5,
         verbose: bool = True,
@@ -225,46 +166,82 @@ class NeuralNetwork:
         training_inp_size = min(len(inputs), len(desired_outputs))
         inputs = inputs[:training_inp_size]
         desired_outputs = desired_outputs[:training_inp_size]
-        minibatches = zip(np.array_split(inputs, batch_size), np.array_split(desired_outputs, batch_size))
+        batches = np.ceil(training_inp_size / batch_size)
+        minibatches = list(zip(np.array_split(inputs, batches), np.array_split(desired_outputs, batches)))
         if debug:
             print(
                 f"Training data length: {training_inp_size}, "
                 f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
-                f"Total {len(minibatches)} minibatches, each with {batch_size} inputs"
+                f"Total {len(minibatches)} minibatches, each with {len(minibatches[0][0])} inputs"
             )
 
-        input_batches = np.array_split(inputs, batch_size)
-        output_batches = np.array_split(desired_outputs, batch_size)
-
         for epoch in range(epochs):
-            for i in trange(training_inp_size, desc=f"Epoch {epoch}", unit="inputs"):
-                inp = inputs[i]
-                desired = desired_outputs[i]
-    
-    def backpropagation(self, inputs, desired):
+            pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}", unit="batches")
+            for i in pbar:
+                in_batch, out_batch = minibatches[i]
+
+                # sets up all the inputs for the layers
+                pred = self.forward(in_batch)
+
+                # display loss
+                loss = self.loss.calculate(pred, out_batch)
+                pbar.set_postfix({"Loss": loss})
+
+                loss_deriv = self.loss.derivative(pred, out_batch)
+                self.backward(loss_deriv)
+
+                for layer in self.layers:
+                    if isinstance(layer, Dense):
+                        layer.weights -= learning_rate * layer.d_weights
+                        layer.biases -= learning_rate * layer.d_biases
+
+
+    def get_loss(self, inputs: Tensor, desired_outputs: Tensor) -> Tensor:
         """
-        Find out how much each weight/bias contributes to the loss. Not meant for external use.
+        Calculate the loss for the given data.
+
+        :param inputs: input to the network
+        :param desired_outputs: desired output of the network for the given inputs
+        :returns: the loss of the network for the given parameters
         """
-        impacts_w = [np.zeros(l.weights.shape) for l in self.layers]
-        impacts_b = [np.zeros(l.biases.shape) for l in self.layers]
 
-        raw, activated = self.outputs(inputs)
-        print(raw[-1])
-        print(activated[-1])
-        print(self.layers[-1].activation.derivative(raw[-1]))
-        print(self.loss.derivative(activated[-1], desired))
-        delta = self.layers[-1].activation.derivative(raw[-1])*self.loss.derivative(activated[-1], desired)
-        impacts_w[-1] = np.dot(delta, activated[-2].T)
-        impacts_b[-1] = delta
+        if None in (self.loss, self.optimizer):
+            raise NotRegisteredError("Network needs to be registered in order to use Network.get_loss")
 
-        for l in range(-2, -len(self.layers), -1):
-            pre_act = raw[l]
-            act_deriv = self.layers[l].activation.derivative(pre_act)
-            delta = np.dot(self.layers[l+1].weights.T, delta)*act_deriv
-            impacts_w[l] = np.dot(delta, activated[l-1].T)
-            impacts_b[l] = delta
+        pred = self.forward(inputs)
+        return self.loss.calculate(pred, desired_outputs)
 
-        return impacts_w, impacts_b
+    def predict(self, inputs: Tensor) -> int:
+        """
+        Get the prediction of the neural network for the given input. This method should only
+        be used on a trained network, because otherwise it will produce useless random values.
+
+        :param inputs: inputs to the network
+        :returns: an array which contains the value of each neuron in the last layer
+        """
+        return self.forward(inputs)[1][-1]
+
+    def register(self, loss: Loss, optimizer: Optimizer) -> None:
+        """
+        Register the neural network. This method initializes the network with loss and optimizer
+        and also finishes up any last touches to its layers.
+
+        :param loss: type of loss this network uses to calculate loss
+        :param optimizer: type of optimizer this network uses
+        :raises InitializationError: num_inputs not specified to first layer
+        """
+
+        self.loss = loss
+        self.optimizer = optimizer
+
+        # register all layers
+        if self.layers[0].num_inputs is None:
+            raise InitializationError("First layer must be specified with num_inputs")
+
+        curr_neurons = self.layers[0].neurons
+        for layer in self.layers[1:]:
+            layer.register(curr_neurons)
+            curr_neurons = layer.neurons
 
     def __repr__(self):
         layers = "\n\t" + ",\n\t".join([str(l) for l in self.layers]) + "\n"
@@ -273,166 +250,3 @@ class NeuralNetwork:
     def __add__(self, layer: Layer):
         self.layers.append(layer)
         return self
-
-
-"""
-# stuff
-class NeuralNetwork(object):
-    def __init__(self, layers):
-        self.layers = layers
-        self.weights = []
-        self.biases = []
-        for i in range(len(layers) - 1):
-            self.weights.append(np.random.randn(layers[i + 1], layers[i]))
-            self.biases.append(np.random.randn(layers[i + 1], 1))
-
-        # weights:
-        # [
-        #    [first layer neurons -> l2n1 weights],
-        #    [first layer neurons -> l2n2 weights],
-        #    ...8 times total
-        # ]
-        # ex:
-        # [
-        #    [a1, b1],
-        #    [a2, b2],
-        #    ...
-        #    [a8, b8]
-        # ]
-        #
-        # current:
-        # [
-        #    [l1n1 -> second layer neurons weights],
-        #    [l1n2 -> second layer neurons weights]
-        # ]
-        # ex:
-        # [
-        #    [a1, a2, a3, a4, a5, a6, a7, a8],
-        #    [b1, b2, b3, b4, b5, b6, b7, b8]
-        # ]
-
-        # biases:
-        # [
-        #    [each second layer neuron has unique bias],
-        #    [l2n2 has unique bias],
-        #    ...8 times total
-        # ]
-        # ex
-        # [
-        #    [b1],
-        #    [b2],
-        #    ...
-        #    [b8]
-        # ]
-        #
-        # current:
-        # [
-        #    [all biases of second layer]
-        # ]
-        # ex:
-        # [
-        #    [b1, b2, b3, b4, b5, b6, b7, b8]
-        # ]
-
-    def feedforward(self, x):
-        a = np.copy(x)
-        z_s = []
-        a_s = [a]
-        for i in range(len(self.weights)):
-            activation_function = self.getActivationFunction(self.activations[i])
-            z_s.append(self.weights[i].dot(a) + self.biases[i])
-            a = activation_function(z_s[-1])
-            a_s.append(a)
-        return (z_s, a_s)
-
-    def backpropagation(self, y, z_s, a_s):
-        dw = []  # dC/dW
-        db = []  # dC/dB
-        deltas = [None] * len(
-            self.weights
-        )  # delta = dC/dZ  known as error for each layer
-        # insert the last layer error
-        deltas[-1] = (y - a_s[-1]) * (
-            self.getDerivitiveActivationFunction(self.activations[-1])
-        )(z_s[-1])
-        # Perform BackPropagation
-        for i in reversed(range(len(deltas) - 1)):
-            deltas[i] = self.weights[i + 1].T.dot(deltas[i + 1]) * (
-                self.getDerivitiveActivationFunction(self.activations[i])(z_s[i])
-            )
-        # a= [print(d.shape) for d in deltas]
-        batch_size = y.shape[1]
-        db = [d.dot(np.ones((batch_size, 1))) / float(batch_size) for d in deltas]
-        dw = [d.dot(a_s[i].T) / float(batch_size) for i, d in enumerate(deltas)]
-        # return the derivitives respect to weight matrix and biases
-        return dw, db
-
-    def train(self, x, y, batch_size=10, epochs=100, lr=0.01):
-        # update weights and biases based on the output
-        for e in range(epochs):
-            i = 0
-            while i < len(y):
-                x_batch = x[i : i + batch_size]
-                y_batch = y[i : i + batch_size]
-                i = i + batch_size
-                z_s, a_s = self.feedforward(x_batch)
-                dw, db = self.backpropagation(y_batch, z_s, a_s)
-                self.weights = [
-                    w + lr * dweight for w, dweight in zip(self.weights, dw)
-                ]
-                self.biases = [w + lr * dbias for w, dbias in zip(self.biases, db)]
-                print("loss = {}".format(np.linalg.norm(a_s[-1] - y_batch)))
-
-    @staticmethod
-    def getActivationFunction(name):
-        if name == "sigmoid":
-            return lambda x: np.exp(x) / (1 + np.exp(x))
-        elif name == "linear":
-            return lambda x: x
-        elif name == "relu":
-
-            def relu(x):
-                y = np.copy(x)
-                y[y < 0] = 0
-                return y
-
-            return relu
-        else:
-            print("Unknown activation function. linear is used")
-            return lambda x: x
-
-    @staticmethod
-    def getDerivitiveActivationFunction(name):
-        if name == "sigmoid":
-            sig = lambda x: np.exp(x) / (1 + np.exp(x))
-            return lambda x: sig(x) * (1 - sig(x))
-        elif name == "linear":
-            return lambda x: 1
-        elif name == "relu":
-
-            def relu_diff(x):
-                y = np.copy(x)
-                y[y >= 0] = 1
-                y[y < 0] = 0
-                return y
-
-            return relu_diff
-        else:
-            print("Unknown activation function. linear is used")
-            return lambda x: 1
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    nn = NeuralNetwork([1, 100, 1], activations=["sigmoid", "sigmoid"])
-    X = 2 * np.pi * np.random.rand(1000).reshape(1, -1)
-    y = np.sin(X)
-
-    nn.train(X, y, epochs=10000, batch_size=64, lr=0.1)
-    _, a_s = nn.feedforward(X)
-    # print(y, X)
-    plt.scatter(X.flatten(), y.flatten())
-    plt.scatter(X.flatten(), a_s[-1].flatten())
-    plt.show()
-"""
