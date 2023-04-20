@@ -41,6 +41,7 @@ __all__ = [
     "Sigmoid",
     "Swish",
     "NewtonsSerpentine",
+    "Tanh",
 ]
 
 
@@ -132,7 +133,7 @@ class LeakyReLU(Activation):
 
 class ELU(Activation):
     """
-    Exponential linear unit is also a step function.
+    Exponential linear unit is similar to ReLU, but it is not piecewise.
     Formula: ``A*((e^x)-1)`` | constants: A, e(Euler's number, 2.718...)
 
     Ex, A=1: ``[12.319, -91.3, 0.132] -> [12.319, -1, 0.132]``
@@ -193,9 +194,8 @@ class Softmax(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        axis = int(inputs.ndim == 2)
-        exp = np.exp(inputs - np.max(inputs, axis=axis, keepdims=True))
-        return Tensor(exp / np.sum(exp, axis=axis, keepdims=True))
+        exp = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
+        return Tensor(exp / np.sum(exp, axis=1, keepdims=True))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         # TODO: implement
@@ -287,3 +287,19 @@ class NewtonsSerpentine(Activation):
 
     def __repr__(self) -> str:
         return f"TensorNN.NewtonsSerpentine(a={self.a}, b={self.b})"
+
+
+class Tanh(Activation):
+    """
+    TODO: add description
+    """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return Tensor(np.tanh(inputs))
+
+    def derivative(self, inputs: Tensor) -> Tensor:
+        tanh = self.forward(inputs)
+        return Tensor(1 - np.square(tanh))
+
+    def __repr__(self) -> str:
+        return f"TensorNN.Tanh"
