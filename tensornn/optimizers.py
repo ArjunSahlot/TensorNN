@@ -39,4 +39,15 @@ class Optimizer(ABC):
 
 
 class SGD(Optimizer):
-    """ """
+    """
+    Stochastic gradient descent optimizer. But, this is actually mini-batch stochastic
+    gradient descent. You can make it standard SGD by setting batch_size to 1 in training.
+    """
+
+    def __init__(self, learning_rate: float = 0.01) -> None:
+        """
+        Initialize the optimizer.
+
+        :param learning_rate: the learning rate of the optimizer
+        """
+        self.learning_rate = learning_rate

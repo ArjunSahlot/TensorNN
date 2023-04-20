@@ -25,12 +25,12 @@ from typing import Iterable, List, Optional, Sequence, Union, Tuple
 import numpy as np
 from tqdm import tqdm, trange
 
-from tensornn.activation import ReLU, NoActivation
+from tensornn.activation import ReLU, NoActivation, Softmax, Sigmoid
 
 from .layers import Dense, Layer, flatten
 from .tensor import Tensor
 from .optimizers import SGD, Optimizer
-from .loss import MSE, Loss
+from .loss import MSE, Loss, CategoricalCrossEntropy
 from .errors import NotRegisteredError, InputDimError, InitializationError
 
 
@@ -58,7 +58,7 @@ class NeuralNetwork:
         self.optimizer: Optional[Optimizer] = None
 
     @classmethod
-    def simple(cls, sizes: Sequence[int]):
+    def simple(cls, sizes: Sequence[int], learning_rate: float = 0.001):
         """
         Create a NeuralNetwork from the number of neurons per layer.
         First layer will be considered the input layer. All layers will be the
@@ -76,10 +76,10 @@ class NeuralNetwork:
         layers.append(Dense(sizes[1], num_inputs=np.prod(sizes[0]), activation=ReLU()))
         for size in sizes[2:-1]:
             layers.append(Dense(size, activation=ReLU()))
-        layers.append(Dense(sizes[-1], activation=NoActivation()))
+        layers.append(Dense(sizes[-1], activation=Sigmoid()))
 
         net = cls(layers)
-        net.register(MSE(), SGD())
+        net.register(MSE(), SGD(learning_rate))
         return net
 
     def add(self, layers: Union[Layer, Iterable[Layer]]) -> None:
@@ -131,11 +131,10 @@ class NeuralNetwork:
         self,
         inputs: Tensor,
         desired_outputs: Tensor,
-        learning_rate: float = 0.01,
+        learning_rate: Optional[float] = None,
         batch_size: int = 32,
         epochs: int = 5,
-        verbose: bool = True,
-        debug: bool = False,
+        verbose: int = 1,
     ) -> None:
         """
         Train the neural network. What training essentially does is adjust the weights and
@@ -145,8 +144,7 @@ class NeuralNetwork:
         :param inputs: training data which is inputted to the network
         :param desired_outputs: these values is what you want the network to output for respective inputs
         :param epochs: how many iterations will your network will run to learn
-        :param verbose: print current progress of the neural network, defaults to True
-        :param debug: whether or not to output some important variables, defaults to False
+        :param verbose: the level of verbosity of the program (1-3), defaults to 1
         :raises NotRegisteredError: network not registered
         :raises InputDimError: inputs not at least 2d
         """
@@ -168,7 +166,7 @@ class NeuralNetwork:
         desired_outputs = desired_outputs[:training_inp_size]
         batches = np.ceil(training_inp_size / batch_size)
         minibatches = list(zip(np.array_split(inputs, batches), np.array_split(desired_outputs, batches)))
-        if debug:
+        if verbose > 1:
             print(
                 f"Training data length: {training_inp_size}, "
                 f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
@@ -176,7 +174,10 @@ class NeuralNetwork:
             )
 
         for epoch in range(epochs):
-            pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}", unit="batches")
+            if verbose > 0:
+                pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}", unit="batches")
+            else:
+                pbar = range(len(minibatches))
             for i in pbar:
                 in_batch, out_batch = minibatches[i]
 
@@ -190,10 +191,23 @@ class NeuralNetwork:
                 loss_deriv = self.loss.derivative(pred, out_batch)
                 self.backward(loss_deriv)
 
+                output = ""
                 for layer in self.layers:
-                    if isinstance(layer, Dense):
-                        layer.weights -= learning_rate * layer.d_weights
-                        layer.biases -= learning_rate * layer.d_biases
+                    layer.weights -= learning_rate * layer.d_weights
+                    layer.biases -= learning_rate * layer.d_biases
+
+                    if verbose > 2:
+                        layer_out = str(layer).ljust(70) + "\t"
+                        weights = f"weights mean: {np.round(np.mean(layer.weights), 5)}".ljust(30) + "\t"
+                        biases = f"biases mean: {np.round(np.mean(layer.biases), 5)}".ljust(30) + "\t"
+                        d_weights = f"d_weights mean: {np.round(np.mean(layer.d_weights), 5)}".ljust(30) + "\t"
+                        d_biases = f"d_biases mean: {np.round(np.mean(layer.d_biases), 5)}".ljust(30)
+
+                        output += layer_out + weights + biases + d_weights + d_biases
+
+                if verbose > 2:
+                    print(output, file=open("tnn_training_debug.txt", "a"))
+                    output = ""
 
 
     def get_loss(self, inputs: Tensor, desired_outputs: Tensor) -> Tensor:
@@ -213,13 +227,14 @@ class NeuralNetwork:
 
     def predict(self, inputs: Tensor) -> int:
         """
-        Get the prediction of the neural network for the given input. This method should only
-        be used on a trained network, because otherwise it will produce useless random values.
+        Get the prediction of the neural network. This will return the index of the most highly
+        activated neuron. This method should only be used on a trained network, because otherwise
+        it will produce useless random values.
 
         :param inputs: inputs to the network
         :returns: an array which contains the value of each neuron in the last layer
         """
-        return self.forward(inputs)[1][-1]
+        return np.argmax(self.forward(inputs), axis=1)
 
     def register(self, loss: Loss, optimizer: Optimizer) -> None:
         """

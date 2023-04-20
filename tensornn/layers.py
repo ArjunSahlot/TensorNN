@@ -64,7 +64,7 @@ class Layer(ABC):
         :param activation: the activation function applied before the layer output is calculated, defaults to NoActivation
         """
         self.neurons = num_neurons
-        self.inputs = num_inputs
+        self.num_inputs = num_inputs
         self.activation: Activation = activation
 
     @abstractmethod
@@ -123,9 +123,9 @@ class Dense(Layer):
             self.weights = None  # Initialized on Layer.register()
         
         # Used for backpropagation
-        self.inputs: Tensor = Tensor()
-        self.d_weights: Tensor = Tensor()
-        self.d_biases: Tensor = Tensor()
+        self.inputs: Tensor
+        self.d_weights: Tensor
+        self.d_biases: Tensor
 
     def forward(self, inputs: Tensor) -> Tensor:
         # @ is __matmul__ from python3.5+, https://www.python.org/dev/peps/pep-0465/
@@ -134,10 +134,14 @@ class Dense(Layer):
         return values, self.activation.forward(values)
     
     def backward(self, deriv_cost: Tensor) -> Tensor:
-        deriv_cost = self.activation.backward(self.inputs @ self.weights + self.biases)
+        deriv_cost = self.activation.derivative(self.inputs @ self.weights + self.biases)
 
         self.d_weights = self.inputs.T @ deriv_cost
-        self.d_biases = np.sum(deriv_cost, axis=0, keepdims=True)
+        # print("d_weights")
+        # print(self.d_weights)
+        self.d_biases = np.sum(deriv_cost, axis=0)
+        # print("d_biases")
+        # print(self.d_biases)
         return deriv_cost @ self.weights.T
 
     def register(self, prev: int) -> None:
@@ -153,4 +157,4 @@ def flatten(inputs: Tensor) -> Tensor:
     as input since it is 2D, so we can flatten it to make it 1D. This should be the
     first layer of the network.
     """
-    return Tensor(inputs.reshape(np.prod(inputs.shape)))
+    return Tensor(inputs.reshape(inputs.shape[0], np.prod(inputs.shape[1:])))
