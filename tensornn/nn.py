@@ -27,11 +27,13 @@ from tqdm import tqdm, trange
 
 from tensornn.activation import ReLU, NoActivation, Softmax, Sigmoid
 
-from .layers import Dense, Layer, flatten
+from .layers import Dense, Layer
 from .tensor import Tensor
 from .optimizers import SGD, Optimizer
 from .loss import MSE, Loss, CategoricalCrossEntropy
 from .errors import NotRegisteredError, InputDimError, InitializationError
+from .utils import TensorNNObject
+from .debug import VERBOSE_LEVEL, Levels, DEBUG_FILE
 
 
 __all__ = [
@@ -42,7 +44,7 @@ __all__ = [
 # TODO: DO REPRS/STRS FOR ALL OBJECTS
 
 
-class NeuralNetwork:
+class NeuralNetwork(TensorNNObject):
     """
     Create your neural network with this class.
     """
@@ -64,17 +66,17 @@ class NeuralNetwork:
         First layer will be considered the input layer. All layers will be the
         Dense layer with the ReLU activation. The last layer will be Dense with
         the Softmax activation. The network will also be registered with
-        CategoricalCrossEntropy loss and the SGD optimizer.
+        MSE loss and the SGD optimizer.
 
         :param sizes: list of numbers of neurons per layer
+        :param learning_rate: the learning rate of the network
         """
         
         if len(sizes) < 3:
             raise InitializationError("NeuralNetwork needs at least 2 layers, excluding input layer")
 
         layers = []
-        layers.append(Dense(sizes[1], num_inputs=np.prod(sizes[0]), activation=ReLU()))
-        for size in sizes[2:-1]:
+        for size in sizes[0:-1]:
             layers.append(Dense(size, activation=ReLU()))
         layers.append(Dense(sizes[-1], activation=Sigmoid()))
 
@@ -98,19 +100,24 @@ class NeuralNetwork:
     def forward(self, inputs: Tensor) -> Tensor:
         """
         Propagate the inputs through the network and return the last layer's output.
-        Automatically flattens the input.
 
         :param inputs: inputs to the network
         :returns: the output of the last layer in the network
         """
-        inputs = flatten(inputs)
-        
-        if inputs.shape[1] != self.layers[0].num_inputs:
+        if inputs.ndim != 1:
             raise InputDimError(
-                "Input shape does not match the number of neurons in the first layer. "
-                f"Number of inputs: {inputs.shape[1]}, input layer neurons: {self.layers[0].num_inputs}"
+                "Input shape must be 1 dimensional. Perhaps you need to tnn.flatten the input?"
+                f"Input shape: {inputs.shape}, input layer neurons: {self.layers[0].neurons}"
             )
 
+        if len(inputs) != self.layers[0].neurons:
+            raise InputDimError(
+                "Input shape does not match the number of neurons in the first layer. "
+                f"Number of inputs: {len(inputs)}, input layer neurons: {self.layers[0].neurons}"
+            )
+
+        # Currently, layers only accept 1D inputs, perhaps making it 2D will improve performance?
+        # TODO: test this
         for layer in self.layers:
             _, inputs = layer.forward(inputs)
 
@@ -126,6 +133,13 @@ class NeuralNetwork:
         """
         for layer in reversed(self.layers):
             loss_deriv = layer.backward(loss_deriv)
+    
+    def reset_gradients(self) -> None:
+        """
+        Reset the gradients of all the layers in the network.
+        """
+        for layer in self.layers:
+            layer.reset_gradients()
 
     def train(
         self,
@@ -134,7 +148,6 @@ class NeuralNetwork:
         learning_rate: Optional[float] = None,
         batch_size: int = 32,
         epochs: int = 5,
-        verbose: int = 1,
     ) -> None:
         """
         Train the neural network. What training essentially does is adjust the weights and
@@ -156,17 +169,20 @@ class NeuralNetwork:
         if inputs.ndim < 2:
             raise InputDimError(
                 "Received inputs less than 2D. Need to be at least 2D. "
-                "Use numpy.atleast_2d to make them 2D. "
-                "tnn.atleast_2d also works if you would prefer not to import numpy."
+                "Perhaps use tnn.atleast_2d to make them 2D?"
+            )
+        
+        if len(inputs) != len(desired_outputs):
+            raise InputDimError(
+                "Length of inputs and desired_outputs do not match, each input doesn't have a matching desired output. "
+                f"Inputs length: {len(inputs)}, desired_outputs length: {len(desired_outputs)}. "
             )
 
         # number of training inputs have matching desired outputs
-        training_inp_size = min(len(inputs), len(desired_outputs))
-        inputs = inputs[:training_inp_size]
-        desired_outputs = desired_outputs[:training_inp_size]
+        training_inp_size = len(inputs)
         batches = np.ceil(training_inp_size / batch_size)
         minibatches = list(zip(np.array_split(inputs, batches), np.array_split(desired_outputs, batches)))
-        if verbose > 1:
+        if VERBOSE_LEVEL >= Levels.SUMMARY:
             print(
                 f"Training data length: {training_inp_size}, "
                 f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
@@ -174,19 +190,23 @@ class NeuralNetwork:
             )
 
         for epoch in range(epochs):
-            if verbose > 0:
-                pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}", unit="batches")
+            if VERBOSE_LEVEL >= Levels.INFO:
+                pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}/{epochs}", unit="batches")
             else:
                 pbar = range(len(minibatches))
             for i in pbar:
                 in_batch, out_batch = minibatches[i]
+
+                self.reset_gradients()
 
                 # sets up all the inputs for the layers
                 pred = self.forward(in_batch)
 
                 # display loss
                 loss = self.loss.calculate(pred, out_batch)
-                pbar.set_postfix({"Loss": loss})
+                
+                if VERBOSE_LEVEL >= Levels.INFO:
+                    pbar.set_postfix({"Loss": loss})
 
                 loss_deriv = self.loss.derivative(pred, out_batch)
                 self.backward(loss_deriv)
@@ -196,7 +216,7 @@ class NeuralNetwork:
                     layer.weights -= learning_rate * layer.d_weights
                     layer.biases -= learning_rate * layer.d_biases
 
-                    if verbose > 2:
+                    if VERBOSE_LEVEL >= Levels.DEBUG:
                         layer_out = str(layer).ljust(70) + "\t"
                         weights = f"weights mean: {np.round(np.mean(layer.weights), 5)}".ljust(30) + "\t"
                         biases = f"biases mean: {np.round(np.mean(layer.biases), 5)}".ljust(30) + "\t"
@@ -205,8 +225,8 @@ class NeuralNetwork:
 
                         output += layer_out + weights + biases + d_weights + d_biases
 
-                if verbose > 2:
-                    print(output, file=open("tnn_training_debug.txt", "a"))
+                if VERBOSE_LEVEL >= Levels.DEBUG:
+                    print(output, file=open(DEBUG_FILE, "a"))
                     output = ""
 
 
@@ -250,18 +270,21 @@ class NeuralNetwork:
         self.optimizer = optimizer
 
         # register all layers
-        if self.layers[0].num_inputs is None:
-            raise InitializationError("First layer must be specified with num_inputs")
-
+        self.layers[0].register(None)
         curr_neurons = self.layers[0].neurons
         for layer in self.layers[1:]:
             layer.register(curr_neurons)
             curr_neurons = layer.neurons
 
     def __repr__(self):
-        layers = "\n\t" + ",\n\t".join([str(l) for l in self.layers]) + "\n"
-        return f"tnn.NeuralNetwork[inputs={self.layers[0].inputs}, layers={len(self.layers)}]({layers})"
-    
+        return f"TensorNN.{self.__class__.__name__}(\n" + \
+                f"\tlayers=[\n\t\t" + \
+                f",\n\t\t".join(map(str, self.layers)) + \
+                f"\n\t],\n" + \
+                f"\tloss={self.loss},\n" + \
+                f"\toptimizer={self.optimizer}\n" + \
+                f")"
+
     def __add__(self, layer: Layer):
         self.layers.append(layer)
         return self

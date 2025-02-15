@@ -1,6 +1,5 @@
 """
-This file contains optimizers that help tune your neural network.
-Optimizers enable us to improve our neural network efficiently.
+This file 
 """
 
 #
@@ -22,33 +21,42 @@ Optimizers enable us to improve our neural network efficiently.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-from abc import ABC, abstractmethod
-
 import numpy as np
 
-from .tensor import Tensor
-from .utils import TensorNNObject
+from enum import Enum
 
 __all__ = [
-    "Optimizer",
-    "SGD",
+    "VERBOSE_LEVEL",
+    "Levels",
+    "DEBUG_FILE",
 ]
 
 
-class Optimizer(ABC, TensorNNObject):
-    """ """
+class Levels(Enum):
+    # Level 0:
+    # Only errors
+    ERROR = 0
+
+    # Level 1:
+    # Warning messages, such as dead networks, deprecated functions, etc.
+    WARNING = 1
+
+    # Level 2:
+    # Additional information on top of warnings, think of it as QOL
+    # messages such as loading updates, etc.
+    INFO = 2
+
+    # Level 3:
+    # Think of this level as extra info that you don't need but is convenient and
+    # interesting to have around. Stuff like summaries
+    SUMMARY = 3
+
+    # Level 4:
+    # Even more debugging information. Outputs things like mean of weights/gradients
+    # while training and redirects it to tnn.debug.DEBUG_FILE.
+    DEBUG = 4
 
 
-class SGD(Optimizer):
-    """
-    Stochastic gradient descent optimizer. But, this is actually mini-batch stochastic
-    gradient descent. You can make it standard SGD by setting batch_size to 1 in training.
-    """
+VERBOSE_LEVEL = Levels.INFO
 
-    def __init__(self, learning_rate: float = 0.01) -> None:
-        """
-        Initialize the optimizer.
-
-        :param learning_rate: the learning rate of the optimizer
-        """
-        self.learning_rate = learning_rate
+DEBUG_FILE = "tnn_debug.log"

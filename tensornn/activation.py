@@ -30,6 +30,7 @@ import warnings
 import numpy as np
 
 from .tensor import Tensor
+from .utils import TensorNNObject
 
 __all__ = [
     "Activation",
@@ -45,7 +46,7 @@ __all__ = [
 ]
 
 
-class Activation(ABC):
+class Activation(ABC, TensorNNObject):
     """
     Base activation class. All activation classes should inherit from this.
     """
@@ -80,9 +81,6 @@ class NoActivation(Activation):
     def derivative(self, inputs: Tensor) -> Tensor:
         return np.ones(inputs.shape)
 
-    def __repr__(self) -> str:
-        return "TensorNN.NoActivation"
-
 
 class ReLU(Activation):
     """
@@ -98,9 +96,6 @@ class ReLU(Activation):
 
     def derivative(self, inputs: Tensor) -> Tensor:
         return Tensor(np.where(inputs > 0, 1, 0))
-
-    def __repr__(self) -> str:
-        return "TensorNN.ReLU"
 
 
 class LeakyReLU(Activation):
@@ -194,15 +189,12 @@ class Softmax(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        exp = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
-        return Tensor(exp / np.sum(exp, axis=1, keepdims=True))
+        exp = np.exp(inputs - np.max(inputs))
+        return Tensor(exp / np.sum(exp))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         # TODO: implement
         return
-
-    def __repr__(self) -> str:
-        return f"TensorNN.Softmax"
 
 
 class Sigmoid(Activation):
@@ -220,9 +212,6 @@ class Sigmoid(Activation):
         sigmoid = self.forward(inputs)
         return Tensor(sigmoid * (1 - sigmoid))
 
-    def __repr__(self) -> str:
-        return f"TensorNN.Sigmoid"
-
 
 class Swish(Activation):
     """
@@ -239,9 +228,6 @@ class Swish(Activation):
         swish = self.forward(inputs)
         sigmoid = swish / inputs
         return Tensor(swish + sigmoid * (1 - swish))
-
-    def __repr__(self) -> str:
-        return f"TensorNN.Swish"
 
 
 class NewtonsSerpentine(Activation):
@@ -300,6 +286,3 @@ class Tanh(Activation):
     def derivative(self, inputs: Tensor) -> Tensor:
         tanh = self.forward(inputs)
         return Tensor(1 - np.square(tanh))
-
-    def __repr__(self) -> str:
-        return f"TensorNN.Tanh"

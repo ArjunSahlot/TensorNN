@@ -31,7 +31,7 @@ import numpy as np
 from .tensor import Tensor
 
 
-__all__ = ["source", "one_hot", "normalize", "atleast_2d"]
+__all__ = ["source", "one_hot", "normalize", "atleast_2d", "set_seed", "flatten"]
 
 
 def source(obj: Any, output: Optional[TextIO] = sys.stdout) -> str:
@@ -98,6 +98,10 @@ def takes_one_hot(pos: int = 2):
     return decorator
 
 
+# I don't like this. I initially did it this way to provide flexibility to the user.
+# But, I think this is instead just overcomplicated and not helpful. Instead, let's make
+# it simple so the user understands what's going on and can easily adjust the data themselves.
+# TODO: improve this
 def takes_single_value(pos: int = 1):
     """
     Apply this decorator to a function that takes in a single value. Used for loss functions.
@@ -131,6 +135,36 @@ def normalize(data):
     return data / np.max(data)
 
 
-# def partial_derivative(func, *args):
-    
+def set_seed(seed):
+    """
+    Set the seed for TensorNN's randomness. Useful for reproducibility while testing and debugging.
+
+    :param seed: the seed to set
+    """
+
+    np.random.seed(seed)
+
+
+def flatten(inputs: Tensor) -> Tensor:
+    """
+    Flatten the inputs array. For example, a neural network cannot take in an image
+    as input since it is 2D, so we can flatten it to make it 1D.
+    """
+    # return Tensor(inputs.reshape(inputs.shape[0], np.prod(inputs.shape[1:])))
+    return Tensor(inputs.reshape(np.prod(inputs.shape)))
+
+
 atleast_2d = np.atleast_2d
+
+
+class TensorNNObject:
+    """
+    Base class for all TensorNN objects. This class is used to provide a common interface for all
+    TensorNN objects and to provide a base __repr__ method for all TensorNN objects.
+    """
+
+    def source(self, output: Optional[TextIO] = sys.stdout) -> str:
+        return source(self, output)
+
+    def __repr__(self):
+        return f"TensorNN.{self.__class__.__name__}"
