@@ -13,13 +13,29 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath(".."))
+import os
+import importlib.util
 
+def find_package_root(package_name):
+    """Finds the root directory of a package."""
+    try:
+        spec = importlib.util.find_spec(package_name)
+        if spec is None:
+            raise ImportError(f"Package '{package_name}' not found")
+        return os.path.dirname(spec.origin)
+    except ImportError:
+        return None
+
+package_root = find_package_root("tensornn")
+if package_root:
+    sys.path.insert(0, package_root)
+else:
+    print(f"Warning: Could not find package 'tensornn'. Documentation might not build correctly.")
 
 # -- Project information -----------------------------------------------------
 
 project = "TensorNN"
-copyright = "2023, Arjun Sahlot"
+copyright = "2025, Arjun Sahlot"
 author = "Arjun Sahlot"
 
 # The full version, including alpha/beta/rc tags
