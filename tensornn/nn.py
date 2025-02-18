@@ -22,10 +22,8 @@ This file contains the neural network class.
 #
 
 from typing import Iterable, List, Optional, Sequence, Union, Tuple
-import numpy as np
 from tqdm import tqdm, trange
-
-from tensornn.activation import ReLU, NoActivation, Softmax, Sigmoid
+import numpy as np
 
 from .layers import Dense, Layer
 from .tensor import Tensor
@@ -33,7 +31,8 @@ from .optimizers import SGD, Optimizer
 from .loss import MSE, Loss, CategoricalCrossEntropy
 from .errors import NotRegisteredError, InputDimError, InitializationError
 from .utils import TensorNNObject
-from .debug import VERBOSE_LEVEL, Levels, DEBUG_FILE
+from .activation import ReLU, NoActivation, Softmax, Sigmoid
+import tensornn.debug as debug
 
 
 __all__ = [
@@ -73,7 +72,7 @@ class NeuralNetwork(TensorNNObject):
         """
         
         if len(sizes) < 3:
-            raise InitializationError("NeuralNetwork needs at least 2 layers, excluding input layer")
+            raise InitializationError("NeuralNetwork needs at least 2 layers")
 
         layers = []
         for size in sizes[0:-1]:
@@ -104,20 +103,23 @@ class NeuralNetwork(TensorNNObject):
         :param inputs: inputs to the network
         :returns: the output of the last layer in the network
         """
-        if inputs.ndim != 1:
+
+        if None in (self.loss, self.optimizer):
+            raise NotRegisteredError("NeuralNetwork is not registered")
+
+        if inputs.ndim != 2:
+            flag = "run tnn.atleast_2d on" if inputs.ndim < 2 else "tnn.flatten"
             raise InputDimError(
-                "Input shape must be 1 dimensional. Perhaps you need to tnn.flatten the input?"
-                f"Input shape: {inputs.shape}, input layer neurons: {self.layers[0].neurons}"
+                f"Input shape must be 2 dimensional. Perhaps you need to {flag} the input?\n"
+                f"Input shape dimensions: {inputs.ndim}, expected: 2"
             )
 
-        if len(inputs) != self.layers[0].neurons:
+        if inputs.shape[1] != self.layers[0].neurons:
             raise InputDimError(
-                "Input shape does not match the number of neurons in the first layer. "
-                f"Number of inputs: {len(inputs)}, input layer neurons: {self.layers[0].neurons}"
+                "Input shape does not match the number of neurons in the first layer.\n"
+                f"Number of inputs: {inputs.shape[1]}, input layer neurons: {self.layers[0].neurons}"
             )
 
-        # Currently, layers only accept 1D inputs, perhaps making it 2D will improve performance?
-        # TODO: test this
         for layer in self.layers:
             _, inputs = layer.forward(inputs)
 
@@ -145,7 +147,7 @@ class NeuralNetwork(TensorNNObject):
         self,
         inputs: Tensor,
         desired_outputs: Tensor,
-        learning_rate: Optional[float] = None,
+        learning_rate: float = 0.001,
         batch_size: int = 32,
         epochs: int = 5,
     ) -> None:
@@ -182,22 +184,22 @@ class NeuralNetwork(TensorNNObject):
         training_inp_size = len(inputs)
         batches = np.ceil(training_inp_size / batch_size)
         minibatches = list(zip(np.array_split(inputs, batches), np.array_split(desired_outputs, batches)))
-        if VERBOSE_LEVEL >= Levels.SUMMARY:
+        if debug.VERBOSE_LEVEL >= debug.Levels.SUMMARY:
             print(
                 f"Training data length: {training_inp_size}, "
                 f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
                 f"Total {len(minibatches)} minibatches, each with {len(minibatches[0][0])} inputs"
             )
-
+        
         for epoch in range(epochs):
-            if VERBOSE_LEVEL >= Levels.INFO:
+            if debug.VERBOSE_LEVEL >= debug.Levels.INFO:
                 pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}/{epochs}", unit="batches")
             else:
                 pbar = range(len(minibatches))
             for i in pbar:
                 in_batch, out_batch = minibatches[i]
 
-                self.reset_gradients()
+                # self.reset_gradients()
 
                 # sets up all the inputs for the layers
                 pred = self.forward(in_batch)
@@ -205,28 +207,29 @@ class NeuralNetwork(TensorNNObject):
                 # display loss
                 loss = self.loss.calculate(pred, out_batch)
                 
-                if VERBOSE_LEVEL >= Levels.INFO:
-                    pbar.set_postfix({"Loss": loss})
+                if debug.VERBOSE_LEVEL >= debug.Levels.INFO:
+                    pbar.set_postfix({"Loss": np.mean(loss)})
 
                 loss_deriv = self.loss.derivative(pred, out_batch)
                 self.backward(loss_deriv)
 
                 output = ""
-                for layer in self.layers:
-                    layer.weights -= learning_rate * layer.d_weights
-                    layer.biases -= learning_rate * layer.d_biases
+                for layer in self.layers[1:]:
+                    layer.step(learning_rate)
 
-                    if VERBOSE_LEVEL >= Levels.DEBUG:
+                    if debug.VERBOSE_LEVEL >= debug.Levels.DEBUG:
                         layer_out = str(layer).ljust(70) + "\t"
                         weights = f"weights mean: {np.round(np.mean(layer.weights), 5)}".ljust(30) + "\t"
                         biases = f"biases mean: {np.round(np.mean(layer.biases), 5)}".ljust(30) + "\t"
-                        d_weights = f"d_weights mean: {np.round(np.mean(layer.d_weights), 5)}".ljust(30) + "\t"
-                        d_biases = f"d_biases mean: {np.round(np.mean(layer.d_biases), 5)}".ljust(30)
+                        grad_weights = f"grad_weights mean: {np.round(np.mean(layer.grad_weights), 5)}".ljust(30) + "\t"
+                        grad_biases = f"grad_biases mean: {np.round(np.mean(layer.grad_biases), 5)}".ljust(30)
 
-                        output += layer_out + weights + biases + d_weights + d_biases
+                        output += layer_out + weights + biases + grad_weights + grad_biases + "\n"
 
-                if VERBOSE_LEVEL >= Levels.DEBUG:
-                    print(output, file=open(DEBUG_FILE, "a"))
+                if debug.VERBOSE_LEVEL >= debug.Levels.DEBUG:
+                    if not debug.DEBUG_FILE.exists():
+                        debug.DEBUG_FILE.touch()
+                    print(output, file=open(debug.DEBUG_FILE, "a"))
                     output = ""
 
 
@@ -285,6 +288,13 @@ class NeuralNetwork(TensorNNObject):
                 f"\toptimizer={self.optimizer}\n" + \
                 f")"
 
-    def __add__(self, layer: Layer):
-        self.layers.append(layer)
+    def __add__(self, other: Union[Layer, Iterable[Layer]]) -> "NeuralNetwork":
+        """
+        Add another layer(s) to the network. This is the same as initializing
+        the network with this layer included.
+
+        :param other: the layer(s) to be added
+        :returns: the network with the layer(s) added
+        """
+        self.add(other)
         return self

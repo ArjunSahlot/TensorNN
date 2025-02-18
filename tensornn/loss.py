@@ -28,7 +28,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from .tensor import Tensor
-from .utils import takes_one_hot, takes_single_value, TensorNNObject
+from .utils import TensorNNObject
 
 
 __all__ = [
@@ -83,13 +83,11 @@ class CategoricalCrossEntropy(Loss):
     Note: log in programming is usually ``logₑ`` or ``natural log`` or ``ln`` in math.
     """
 
-    @takes_single_value()
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
         loss = np.log(pred[..., desired])
         return -np.mean(loss)
 
-    @takes_one_hot()
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
         return -desired/pred.clip(1e-15, 1 - 1e-15)
 
@@ -124,14 +122,11 @@ class MeanSquaredError(Loss):
     3. mean: ``0.04666667``
     """
 
-    @takes_one_hot()
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
-        squared_error = np.square(pred - desired)
-        return np.mean(squared_error)
+        return np.square(pred - desired)
 
-    @takes_one_hot()
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return (2/np.prod(desired.shape)) * (desired - pred)
+        return 2 * (pred - desired)
 
 MSE = MeanSquaredError
 

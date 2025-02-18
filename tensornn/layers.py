@@ -71,7 +71,8 @@ class Layer(ABC, TensorNNObject):
 
         self.input = False
         self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
-        self.gradients = None
+        self.grad_weights: Tensor = None
+        self.grad_biases: Tensor = None
         self.weights = None  # Initialized on Layer.register()
 
     @abstractmethod
@@ -99,8 +100,8 @@ class Layer(ABC, TensorNNObject):
         """
         Reset the gradients of the layer. This is called at the start of each epoch.
         """
-        self.gradients = Tensor(np.zeros(self.weights.shape))
-
+        self.grad_weights = np.zeros_like(self.weights)
+        self.grad_biases = np.zeros_like(self.biases)
 
 
 class Dense(Layer):
@@ -127,34 +128,40 @@ class Dense(Layer):
         
         # Used for backpropagation
         self.inputs: Tensor
-        self.d_weights: Tensor
-        self.d_biases: Tensor
-
+        self.calculated: Tensor
+        self.grad_weights: Tensor
+        self.grad_biases: Tensor
+    
     def forward(self, inputs: Tensor) -> Tensor:
         if self.input:
             return inputs, self.activation.forward(inputs)
 
-        # I don't like the way it's converting from 1D to 2D and back to 1D, but it makes it
-        # easier to understand for the user. Might change to sacrifice simplicity for performance.
-        inputs = atleast_2d(inputs)
         self.inputs = inputs
         values = inputs @ self.weights + self.biases
-        values = values[0]
+        self.calculated = values
         return values, self.activation.forward(values)
     
-    def backward(self, deriv_cost: Tensor) -> Tensor:
+    def backward(self, accumlated_gradient: Tensor) -> Tensor:
         if self.input:
             return
 
-        deriv_cost = self.activation.derivative(self.inputs @ self.weights + self.biases)
+        dc_da = accumlated_gradient
+        da_dz = self.activation.derivative(self.calculated)
+        dz_dw = self.inputs
 
-        self.d_weights = self.inputs.T @ deriv_cost
-        # print("d_weights")
-        # print(self.d_weights)
-        self.d_biases = np.sum(deriv_cost, axis=0)
-        # print("d_biases")
-        # print(self.d_biases)
-        return deriv_cost @ self.weights.T
+        self.grad_weights = np.multiply(np.multiply(dz_dw, da_dz), dc_da)
+        self.grad_weights = np.sum(self.grad_weights, axis=0)
+        self.grad_biases = np.multiply(da_dz, dc_da)
+        self.grad_biases = np.sum(self.grad_biases, axis=0)
+
+        return self.grad_weights @ self.weights.T
+    
+    def step(self, learning_rate: float) -> None:
+        if self.input:
+            return
+        
+        self.weights -= learning_rate * self.grad_weights
+        self.biases -= learning_rate * self.grad_biases
 
     def register(self, prev: Optional[int]) -> None:
         if prev is None:

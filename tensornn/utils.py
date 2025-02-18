@@ -78,50 +78,6 @@ def one_hot(values: Union[int, Iterable[int]], classes: int) -> Tensor:
     return arr
 
 
-def takes_one_hot(pos: int = 2):
-    """
-    Apply this decorator to a function that takes in a one-hot vector. Used for loss functions.
-
-    :param pos: position of the argument to convert to one-hot vector, default 2 for loss functions
-    :returns: decorator
-    """
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if len(args[pos].shape) == 1:
-                args = list(args)
-                args[pos] = one_hot(args[pos], args[pos-1].shape[1])
-            return func(*args, **kwargs)
-
-        return wrapper
-    return decorator
-
-
-# I don't like this. I initially did it this way to provide flexibility to the user.
-# But, I think this is instead just overcomplicated and not helpful. Instead, let's make
-# it simple so the user understands what's going on and can easily adjust the data themselves.
-# TODO: improve this
-def takes_single_value(pos: int = 1):
-    """
-    Apply this decorator to a function that takes in a single value. Used for loss functions.
-
-    :param pos: position of the argument to convert to single value, default 1 for loss functions
-    :returns: decorator
-    """
-
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if len(args[pos].shape) > 1:
-                args = list(args)
-                args[pos] = np.argmax(args[pos], axis=1)
-            return func(*args, **kwargs)
-
-        return wrapper
-    return decorator
-
-
 def normalize(data):
     """
     Normalize the training data. This will never hurt your data, it will always help it, make sure

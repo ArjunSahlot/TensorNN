@@ -46,6 +46,7 @@ __all__ = [
 ]
 
 
+# TODO: add .plot to all activations to show the graph of the function easily
 class Activation(ABC, TensorNNObject):
     """
     Base activation class. All activation classes should inherit from this.
@@ -189,8 +190,8 @@ class Softmax(Activation):
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
-        exp = np.exp(inputs - np.max(inputs))
-        return Tensor(exp / np.sum(exp))
+        exp = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
+        return Tensor(exp / np.sum(exp, axis=1, keepdims=True))
 
     def derivative(self, inputs: Tensor) -> Tensor:
         # TODO: implement

@@ -1,5 +1,5 @@
 """
-This file 
+This file contains helpful debugging utilities for TensorNN.
 """
 
 #
@@ -23,16 +23,17 @@ This file
 
 import numpy as np
 
-from enum import Enum
+from enum import IntEnum
+from pathlib import Path
 
 __all__ = [
     "VERBOSE_LEVEL",
     "Levels",
-    "DEBUG_FILE",
+    "set_debug_file",
 ]
 
 
-class Levels(Enum):
+class Levels(IntEnum):
     # Level 0:
     # Only errors
     ERROR = 0
@@ -59,4 +60,8 @@ class Levels(Enum):
 
 VERBOSE_LEVEL = Levels.INFO
 
-DEBUG_FILE = "tnn_debug.log"
+DEBUG_FILE = Path("tnn_debug.log")
+
+def set_debug_file(file: str) -> None:
+    global DEBUG_FILE
+    DEBUG_FILE = Path(file)
