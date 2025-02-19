@@ -16,6 +16,8 @@ import sys
 import os
 import importlib.util
 
+sys.path.insert(0, os.path.abspath(".."))
+
 def find_package_root(package_name):
     """Finds the root directory of a package."""
     try:
