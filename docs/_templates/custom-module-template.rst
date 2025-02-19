@@ -1,13 +1,17 @@
 {{ fullname | escape | underline}}
 
+
 .. automodule:: {{ fullname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
    {% block attributes %}
    {% if attributes %}
-   .. rubric:: Module attributes
+   .. rubric:: Module Attributes
 
    .. autosummary::
-      :toctree:
+      :toctree: _autosummary
    {% for item in attributes %}
       {{ item }}
    {%- endfor %}
@@ -16,10 +20,10 @@
 
    {% block functions %}
    {% if functions %}
-   .. rubric:: {{ _('Functions') }}
+   .. rubric:: Functions
 
    .. autosummary::
-      :toctree:
+      :toctree: _autosummary
       :nosignatures:
    {% for item in functions %}
       {{ item }}
@@ -29,10 +33,10 @@
 
    {% block classes %}
    {% if classes %}
-   .. rubric:: {{ _('Classes') }}
+   .. rubric:: Classes
 
    .. autosummary::
-      :toctree:
+      :toctree: _autosummary
       :template: custom-class-template.rst
       :nosignatures:
    {% for item in classes %}
@@ -43,24 +47,26 @@
 
    {% block exceptions %}
    {% if exceptions %}
-   .. rubric:: {{ _('Exceptions') }}
+   .. rubric:: Exceptions
 
    .. autosummary::
-      :toctree:
+      :toctree: _autosummary
    {% for item in exceptions %}
       {{ item }}
    {%- endfor %}
    {% endif %}
    {% endblock %}
 
-{% block modules %}
-{% if modules %}
-.. autosummary::
-   :toctree:
-   :template: custom-module-template.rst
-   :recursive:
-{% for item in modules %}
-   {{ item }}
-{%- endfor %}
-{% endif %}
-{% endblock %}
+   {% block modules %}
+   {% if modules %}
+   .. rubric:: Submodules
+
+   .. autosummary::
+      :toctree: _autosummary
+      :template: custom-module-template.rst
+      :recursive:
+   {% for item in modules %}
+      {{ item }}
+   {%- endfor %}
+   {% endif %}
+   {% endblock %}
