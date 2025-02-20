@@ -194,6 +194,7 @@ class Softmax(Activation):
         return Tensor(exp / np.sum(exp, axis=1, keepdims=True))
 
     def derivative(self, inputs: Tensor) -> Tensor:
+        raise NotImplementedError
         # TODO: implement
         return
 

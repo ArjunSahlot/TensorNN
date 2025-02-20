@@ -273,9 +273,8 @@ class NeuralNetwork(TensorNNObject):
         self.optimizer = optimizer
 
         # register all layers
-        self.layers[0].register(None)
-        curr_neurons = self.layers[0].neurons
-        for layer in self.layers[1:]:
+        curr_neurons = None
+        for layer in self.layers:
             layer.register(curr_neurons)
             curr_neurons = layer.neurons
 
