@@ -23,7 +23,7 @@ from . import loss
 from . import optimizers
 from . import layers
 from . import nn
-from . import debug
+from .debug import debug
 
 from .utils import source, one_hot, atleast_2d, set_seed, normalize, flatten
 
@@ -35,10 +35,12 @@ __all__ = [
     "errors",
     "layers",
     "nn",
+    "optimizers",
     "source",
     "one_hot",
     "atleast_2d",
     "set_seed",
     "normalize",
-    "flatten"
+    "flatten",
+    "debug",
 ]

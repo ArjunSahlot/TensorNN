@@ -11,5 +11,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "matplotlib>=3.10.1",
     "torch>=2.6.0",
 ]

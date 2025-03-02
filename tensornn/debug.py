@@ -21,47 +21,196 @@ This file contains helpful debugging utilities for TensorNN.
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-import numpy as np
-
-from enum import IntEnum
 from pathlib import Path
+from typing import Literal
 
 __all__ = [
-    "VERBOSE_LEVEL",
-    "Levels",
-    "set_debug_file",
+    "debug",
 ]
 
 
-class Levels(IntEnum):
-    # Level 0:
-    # Only errors
-    ERROR = 0
+class Property:
+    def __init__(self, value: bool = True, parent: 'Property' = None, name: str = "root"):
+        self._value = value
+        self._properties: dict[str, Property] = {}
+        self._parent = parent
+        self._special_value = None
+        self._is_special = False
+        self._name = name
+    
+    def enable(self) -> 'Property':
+        self._value = True
+        self._is_special = False
+        return self
+    
+    def disable(self) -> 'Property':
+        self._value = False
+        self._is_special = False
+        return self
+    
+    def __getattr__(self, name: str) -> 'Property':
+        if name.startswith("_"):
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        
+        if name not in self._properties:
+            self._properties[name] = Property(self._value, parent=self, name=name)
+        
+        return self._properties[name]
+    
+    def __setattr__(self, name: str, value: any) -> None:
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+            return
+        
+        if hasattr(self, "_properties"):
+            if name not in self._properties:
+                self._properties[name] = Property(True, parent=self, name=name)
+                
+            if isinstance(value, bool):
+                self._properties[name]._value = value
+                self._properties[name]._is_special = False
+            else:
+                self._properties[name]._special_value = value
+                self._properties[name]._is_special = True
+        else:
+            super().__setattr__(name, value)
+    
+    def __bool__(self) -> bool:
+        if self._parent is not None and not bool(self._parent):
+            return False
+        return self._value
+    
+    def __repr__(self) -> str:
+        return self._format_tree()
+    
+    def _format_tree(self, indent: int = 0, is_last: bool = True, prefix: str = "") -> str:
+        result = []
+        marker = "└── " if is_last else "├── "
+        
+        if self._name != "root":
+            value_str = self._get_value_str()
+            result.append(f"{prefix}{marker}{self._name}: {value_str}")
 
-    # Level 1:
-    # Warning messages, such as dead networks, deprecated functions, etc.
-    WARNING = 1
+            if is_last:
+                new_prefix = prefix + "    "
+            else:
+                new_prefix = prefix + "│   "
+        else:
+            new_prefix = ""
+        
+        sorted_props = sorted(self._properties.items())
+        
+        for i, (key, prop) in enumerate(sorted_props):
+            is_last_child = (i == len(sorted_props) - 1)
+            result.append(prop._format_tree(indent + 4, is_last_child, new_prefix))
+        
+        return "\n".join(result)
+    
+    def _get_value_str(self) -> str:
+        if self._parent is not None and not bool(self._parent):
+            if self._is_special:
+                return f"{self._special_value} (inactive - parent disabled)"
+            else:
+                return f"{self._value} (inactive - parent disabled)"
+        
+        if self._is_special:
+            return f"{self._special_value}"
+        return f"{self._value}"
+    
+    def get_value(self):
+        if self._parent is not None and not bool(self._parent):
+            return False
+            
+        if self._is_special:
+            return self._special_value
+        return self._value
+    
+    def from_dict(self, config: dict[str, any]) -> None:
+        for key, value in config.items():
+            if isinstance(value, dict):
+                if key not in self._properties:
+                    self._properties[key] = Property(True, parent=self, name=key)
+                self._properties[key].from_dict(value)
+            else:
+                setattr(self, key, value)
 
-    # Level 2:
-    # Additional information on top of warnings, think of it as QOL
-    # messages such as loading updates, etc.
-    INFO = 2
 
-    # Level 3:
-    # Think of this level as extra info that you don't need but is convenient and
-    # interesting to have around. Stuff like summaries
-    SUMMARY = 3
+class DebugInfoHints:
+    progress: bool
+    """Display progress bars through tqdm when applicable."""
 
-    # Level 4:
-    # Even more debugging information. Outputs things like mean of weights/gradients
-    # while training and redirects it to tnn.debug.DEBUG_FILE.
-    DEBUG = 4
+    tips: bool
+    """Display helpful tips and hints for debugging and improving the network."""
+
+    summary: bool
+    """Display a summaries of long tasks"""
+
+class DebugWarningHints:
+    deprecated: bool
+    """Display warnings for deprecated features and functions."""
+
+    network: bool
+    """Display warnings for network related issues."""
+
+class DebugFileHints:
+    weights: bool
+    """Display weights in the debug file."""
+
+    biases: bool
+    """Display biases in the debug file."""
+
+    gradients: bool
+    """Display gradients in the debug file."""
+
+    reduction: Literal["mean", "sum"]
+    """
+    Outputting all the data to the file can be a lot of data. This parameter
+    specifies how to reduce the data. If 'mean', it will output the mean of the data.
+    If 'sum', it will output the sum of the data.
+    """
+
+    update: Literal["epoch", "batch"]
+    """
+    When to update the debug file. If 'epoch', it will update the file at the end of each epoch.
+    If 'batch', it will update the file at the end of each batch.
+    """
+
+    name: str
+    """The name of the debug file."""
+
+class DebugHints:
+    info: DebugInfoHints
+    """Output helpful information for debugging and improving the network."""
+
+    warning: DebugWarningHints
+    """Output warnings for deprecated features and functions, and network related issues."""
+
+    file: DebugFileHints
+    """Output data to a debug file."""
+    
+    
+    def from_dict(self, config): ...
 
 
-VERBOSE_LEVEL = Levels.INFO
+debug: DebugHints = Property()
+debug.from_dict({
+    "info": {
+        "progress": True,
+        "tips": True,
+        "summary": True,
+    },
+    "warning": {
+        "deprecated": True,
+        "network": True,
+    },
+    "file": {
+        "name": "tnn_debug.log",
+        "weights": True,
+        "biases": True,
+        "gradients": True,
+        "reduction": "mean",
+        "update": "epoch",
+    }
+})
 
-DEBUG_FILE = Path("tnn_debug.log")
-
-def set_debug_file(file: str) -> None:
-    global DEBUG_FILE
-    DEBUG_FILE = Path(file)
+debug.file.disable()

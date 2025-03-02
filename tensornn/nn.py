@@ -22,6 +22,10 @@ This file contains the neural network class.
 #
 
 from typing import Iterable, List, Optional, Sequence, Union, Tuple
+from pathlib import Path
+from itertools import count
+import pickle
+
 from tqdm import tqdm, trange
 import numpy as np
 
@@ -32,7 +36,7 @@ from .loss import MSE, Loss, CategoricalCrossEntropy
 from .errors import NotRegisteredError, InputDimError, InitializationError
 from .utils import TensorNNObject
 from .activation import ReLU, NoActivation, Softmax, Sigmoid
-import tensornn.debug as debug
+from .debug import debug
 
 
 __all__ = [
@@ -82,6 +86,26 @@ class NeuralNetwork(TensorNNObject):
         net = cls(layers)
         net.register(MSE(), SGD(learning_rate))
         return net
+    
+    @classmethod
+    def load(cls, path: str) -> 'NeuralNetwork':
+        """
+        Load a network from a file using the pickle module.
+
+        :param path: path to load the network from
+        :returns: the loaded network
+        """
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+    def save(self, path: str) -> None:
+        """
+        Save the network to a file using the pickle module.
+
+        :param path: path to save the network to
+        """
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
 
     def add(self, layers: Union[Layer, Iterable[Layer]]) -> None:
         """
@@ -150,6 +174,7 @@ class NeuralNetwork(TensorNNObject):
         learning_rate: float = 0.001,
         batch_size: int = 32,
         epochs: int = 5,
+        **kwargs
     ) -> None:
         """
         Train the neural network. What training essentially does is adjust the weights and
@@ -184,54 +209,97 @@ class NeuralNetwork(TensorNNObject):
         training_inp_size = len(inputs)
         batches = np.ceil(training_inp_size / batch_size)
         minibatches = list(zip(np.array_split(inputs, batches), np.array_split(desired_outputs, batches)))
-        if debug.VERBOSE_LEVEL >= debug.Levels.SUMMARY:
+        if debug.info.summary:
             print(
                 f"Training data length: {training_inp_size}, "
                 f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
                 f"Total {len(minibatches)} minibatches, each with {len(minibatches[0][0])} inputs"
             )
-        
-        for epoch in range(epochs):
-            if debug.VERBOSE_LEVEL >= debug.Levels.INFO:
-                pbar = trange(len(minibatches), desc=f"Epoch {epoch+1}/{epochs}", unit="batches")
+
+        if debug.file:
+            file = Path(debug.file.name.get_value())
+            if not file.exists():
+                file.touch()
             else:
-                pbar = range(len(minibatches))
-            for i in pbar:
-                in_batch, out_batch = minibatches[i]
+                file.unlink()
+                file.touch()
+        
+        plot_data = {
+            "loss": [],
+        }
 
-                # self.reset_gradients()
+        epoch_range = count(0) if epochs == float("inf") else range(epochs)
+        
+        for epoch in epoch_range:
+            try:
+                if debug.info.progress:
+                    description = f"Epoch {epoch+1}/{epochs}" if epochs != float("inf") else f"Epoch {epoch+1}"
+                    pbar = trange(len(minibatches), desc=description, unit="batches")
+                else:
+                    pbar = range(len(minibatches))
+                for i in pbar:
+                    in_batch, out_batch = minibatches[i]
 
-                # sets up all the inputs for the layers
-                pred = self.forward(in_batch)
+                    # self.reset_gradients()
 
-                # display loss
-                loss = self.loss.calculate(pred, out_batch)
+                    # sets up all the inputs for the layers
+                    pred = self.forward(in_batch)
+
+                    loss = self.loss.display(pred, out_batch)
+
+                    # display loss
+                    if debug.info.progress:
+                        pbar.set_postfix({"Loss": loss})
+
+                    loss_deriv = self.loss.derivative(pred, out_batch)
+                    self.backward(loss_deriv)
+
+                    for layer in self.layers[1:]:
+                        layer.step(learning_rate)
+
+                    if debug.file and debug.file.update.get_value() == "batch":
+                        self.update_log()
+                    
+                    if kwargs["plot_data"] and kwargs["update"] == "batch":
+                        plot_data["loss"].append(loss)
+
+                if debug.file and debug.file.update.get_value() == "epoch":
+                    self.update_log()
                 
-                if debug.VERBOSE_LEVEL >= debug.Levels.INFO:
-                    pbar.set_postfix({"Loss": np.mean(loss)})
+                if kwargs["plot_data"] and kwargs["update"] == "epoch":
+                    plot_data["loss"].append(loss)
 
-                loss_deriv = self.loss.derivative(pred, out_batch)
-                self.backward(loss_deriv)
+            except KeyboardInterrupt:
+                print("Training interrupted by user")
+                if epochs == float("inf"):
+                    break
+                else:
+                    raise KeyboardInterrupt
 
-                output = ""
-                for layer in self.layers[1:]:
-                    layer.step(learning_rate)
+        return plot_data if kwargs["plot_data"] else None
 
-                    if debug.VERBOSE_LEVEL >= debug.Levels.DEBUG:
-                        layer_out = str(layer).ljust(70) + "\t"
-                        weights = f"weights mean: {np.round(np.mean(layer.weights), 5)}".ljust(30) + "\t"
-                        biases = f"biases mean: {np.round(np.mean(layer.biases), 5)}".ljust(30) + "\t"
-                        grad_weights = f"grad_weights mean: {np.round(np.mean(layer.grad_weights), 5)}".ljust(30) + "\t"
-                        grad_biases = f"grad_biases mean: {np.round(np.mean(layer.grad_biases), 5)}".ljust(30)
+    def update_log(self) -> None:
+        """
+        Update the log file with the current weights, biases, and gradients of the network.
+        """
 
-                        output += layer_out + weights + biases + grad_weights + grad_biases + "\n"
+        output = ""
 
-                if debug.VERBOSE_LEVEL >= debug.Levels.DEBUG:
-                    if not debug.DEBUG_FILE.exists():
-                        debug.DEBUG_FILE.touch()
-                    print(output, file=open(debug.DEBUG_FILE, "a"))
-                    output = ""
+        for layer in self.layers[1:]:
+            layer_out = str(layer).ljust(70) + "\t"
+            weights = f"weights mean: {np.round(np.mean(layer.weights), 5)}".ljust(30) + "\t"
+            biases = f"biases mean: {np.round(np.mean(layer.biases), 5)}".ljust(30) + "\t"
+            grad_weights = f"grad_weights mean: {np.round(np.mean(layer.grad_weights), 5)}".ljust(30) + "\t"
+            grad_biases = f"grad_biases mean: {np.round(np.mean(layer.grad_biases), 5)}".ljust(30)
 
+            output += layer_out + \
+                        (weights if debug.file.weights else "") + \
+                        (biases if debug.file.biases else "") + \
+                        (grad_weights if debug.file.weights and debug.file.gradients else "") + \
+                        (grad_biases if debug.file.biases and debug.file.gradients else "") + "\n"
+
+        with Path(debug.file.name.get_value()).open("a") as f:
+            f.write(output + "\n")
 
     def get_loss(self, inputs: Tensor, desired_outputs: Tensor) -> Tensor:
         """
@@ -287,7 +355,7 @@ class NeuralNetwork(TensorNNObject):
                 f"\toptimizer={self.optimizer}\n" + \
                 f")"
 
-    def __add__(self, other: Union[Layer, Iterable[Layer]]) -> "NeuralNetwork":
+    def __add__(self, other: Union[Layer, Iterable[Layer]]) -> 'NeuralNetwork':
         """
         Add another layer(s) to the network. This is the same as initializing
         the network with this layer included.
