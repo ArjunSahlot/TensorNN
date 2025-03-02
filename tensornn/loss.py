@@ -68,6 +68,15 @@ class Loss(ABC, TensorNNObject):
         :param desired: the desired values which the network should have gotten close to
         :returns: the derivative of the loss function wrt the last layer of the network
         """
+    
+    def display(self, pred: Tensor, desired: Tensor) -> None:
+        """
+        Function to get the loss as a single value.
+
+        :param pred: the prediction of the network
+        :param desired: the desired values which the network should have gotten close to
+        """
+        return np.mean(self.calculate(pred, desired))
 
 
 class CategoricalCrossEntropy(Loss):
@@ -86,7 +95,7 @@ class CategoricalCrossEntropy(Loss):
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
         loss = np.log(pred[..., desired])
-        return -np.mean(loss)
+        return -loss
 
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
         return -desired/pred.clip(1e-15, 1 - 1e-15)

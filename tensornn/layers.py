@@ -35,7 +35,6 @@ from .utils import atleast_2d, TensorNNObject
 __all__ = [
     "Layer",
     "Dense",
-    "flatten",
 ]
 
 
@@ -70,7 +69,7 @@ class Layer(ABC, TensorNNObject):
         self.activation: Activation = activation
 
         self.input = False
-        self.biases: Tensor = Tensor(np.random.randn(1, num_neurons))
+        self.biases: Tensor = None
         self.grad_weights: Tensor = None
         self.grad_biases: Tensor = None
         self.weights = None  # Initialized on Layer.register()
@@ -137,31 +136,28 @@ class Dense(Layer):
             return inputs, self.activation.forward(inputs)
 
         self.inputs = inputs
-        values = inputs @ self.weights.T + self.biases
+        values = inputs @ self.weights + self.biases
         self.calculated = values
         return values, self.activation.forward(values)
     
-    def backward(self, accumlated_gradient: Tensor) -> Tensor:
+    def backward(self, accumulated_gradient: Tensor) -> Tensor:
         if self.input:
             return
 
-        dc_da = accumlated_gradient
+        dc_da = accumulated_gradient
         da_dz = self.activation.derivative(self.calculated)
 
-        dc_dz = np.sum(np.multiply(dc_da, da_dz), axis=0)
+        dc_dz = dc_da * da_dz
 
-        dz_dw = np.sum(self.inputs, axis=0)
-        dz_dw = np.tile(dz_dw, (self.neurons, 1))
+        self.grad_weights = self.inputs.T @ dc_dz
+        self.grad_biases = dc_dz.sum(axis=0)
 
-        self.grad_weights = np.diag(dc_dz) @ dz_dw
-        self.grad_biases = dc_dz
-
-        return np.multiply(self.grad_weights, self.weights).sum(axis=0)
+        return dc_dz @ self.weights.T
 
     def step(self, learning_rate: float) -> None:
         if self.input:
             return
-        
+
         self.weights -= learning_rate * self.grad_weights
         self.biases -= learning_rate * self.grad_biases
 
@@ -169,7 +165,8 @@ class Dense(Layer):
         if prev is None:
             self.input = True
         else:
-            self.weights: Tensor = Tensor(np.random.randn(self.neurons, prev))
+            self.weights = Tensor(np.random.randn(prev, self.neurons))
+            self.biases = Tensor(np.random.randn(1, self.neurons))
 
     def __repr__(self) -> str:
         return f"TensorNN.{self.__class__.__name__}(neurons={self.neurons}, activation={self.activation})"
