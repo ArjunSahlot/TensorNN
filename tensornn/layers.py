@@ -154,12 +154,12 @@ class Dense(Layer):
 
         return dc_dz @ self.weights.T
 
-    def step(self, learning_rate: float) -> None:
+    def step(self, adjust_w: Tensor, adjust_b: Tensor) -> None:
         if self.input:
             return
 
-        self.weights -= learning_rate * self.grad_weights
-        self.biases -= learning_rate * self.grad_biases
+        self.weights += adjust_w
+        self.biases += adjust_b
 
     def register(self, prev: Optional[int]) -> None:
         if prev is None:

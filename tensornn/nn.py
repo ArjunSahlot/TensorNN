@@ -166,6 +166,8 @@ class NeuralNetwork(TensorNNObject):
         """
         for layer in self.layers:
             layer.reset_gradients()
+        
+        self.optimizer.reset()
 
     def train(
         self,
@@ -204,6 +206,8 @@ class NeuralNetwork(TensorNNObject):
                 "Length of inputs and desired_outputs do not match, each input doesn't have a matching desired output. "
                 f"Inputs length: {len(inputs)}, desired_outputs length: {len(desired_outputs)}. "
             )
+        
+        self.optimizer.set_lr(learning_rate)
 
         # number of training inputs have matching desired outputs
         training_inp_size = len(inputs)
@@ -240,8 +244,6 @@ class NeuralNetwork(TensorNNObject):
                 for i in pbar:
                     in_batch, out_batch = minibatches[i]
 
-                    # self.reset_gradients()
-
                     # sets up all the inputs for the layers
                     pred = self.forward(in_batch)
 
@@ -254,8 +256,7 @@ class NeuralNetwork(TensorNNObject):
                     loss_deriv = self.loss.derivative(pred, out_batch)
                     self.backward(loss_deriv)
 
-                    for layer in self.layers[1:]:
-                        layer.step(learning_rate)
+                    self.optimizer.step()
 
                     if debug.file and debug.file.update.get_value() == "batch":
                         self.update_log()
@@ -339,6 +340,8 @@ class NeuralNetwork(TensorNNObject):
 
         self.loss = loss
         self.optimizer = optimizer
+
+        self.optimizer.register(self)
 
         # register all layers
         curr_neurons = None
