@@ -137,57 +137,95 @@ class Property:
 
 class DebugInfoHints:
     progress: bool
-    """Display progress bars through tqdm when applicable."""
+    """
+    Display progress bars through tqdm when applicable.
+    default: True
+    """
 
     tips: bool
-    """Display helpful tips and hints for debugging and improving the network."""
+    """
+    Display helpful tips and hints for debugging and improving the network.
+    default: True
+    """
 
     summary: bool
-    """Display a summaries of long tasks"""
+    """
+    Display a summaries of long tasks
+    default: True
+    """
 
 class DebugWarningHints:
     deprecated: bool
-    """Display warnings for deprecated features and functions."""
+    """
+    Display warnings for deprecated features and functions.
+    default: True
+    """
 
     network: bool
-    """Display warnings for network related issues."""
+    """
+    Display warnings for network related issues.
+    default: True
+    """
+
 
 class DebugFileHints:
     weights: bool
-    """Display weights in the debug file."""
+    """
+    Display weights in the debug file.
+    default: True
+    """
 
     biases: bool
-    """Display biases in the debug file."""
+    """
+    Display biases in the debug file.
+    default: True
+    """
 
     gradients: bool
-    """Display gradients in the debug file."""
+    """
+    Display gradients in the debug file.
+    default: True
+    """
 
     reduction: Literal["mean", "sum"]
     """
     Outputting all the data to the file can be a lot of data. This parameter
     specifies how to reduce the data. If 'mean', it will output the mean of the data.
     If 'sum', it will output the sum of the data.
+    default: "mean"
     """
 
     update: Literal["epoch", "batch"]
     """
     When to update the debug file. If 'epoch', it will update the file at the end of each epoch.
     If 'batch', it will update the file at the end of each batch.
+    default: "epoch"
     """
 
     name: str
-    """The name of the debug file."""
+    """
+    The name of the debug file.
+    default: "tnn_debug.log"
+    """
 
 class DebugHints:
     info: DebugInfoHints
-    """Output helpful information for debugging and improving the network."""
+    """
+    Output helpful information for debugging and improving the network.
+    default: ON
+    """
 
     warning: DebugWarningHints
-    """Output warnings for deprecated features and functions, and network related issues."""
+    """
+    Output warnings for deprecated features and functions, and network related issues.
+    default: ON
+    """
 
     file: DebugFileHints
-    """Output data to a debug file."""
-    
+    """
+    Output data to a debug file.
+    default: OFF
+    """
     
     def from_dict(self, config): ...
 
