@@ -131,7 +131,5 @@ dmypy.json
 
 .vscode
 
-test*
-
 *.tnn
 *.pt*
