@@ -29,7 +29,7 @@ import pickle
 from tqdm import tqdm, trange
 import numpy as np
 
-from .layers import Dense, Layer
+from .layers import Dense, Layer, Input
 from .tensor import Tensor
 from .optimizers import SGD, Optimizer
 from .loss import MSE, Loss, CategoricalCrossEntropy
@@ -75,11 +75,11 @@ class NeuralNetwork(TensorNNObject):
         :param learning_rate: the learning rate of the network
         """
         
-        if len(sizes) < 3:
+        if len(sizes) < 2:
             raise InitializationError("NeuralNetwork needs at least 2 layers")
 
-        layers = []
-        for size in sizes[0:-1]:
+        layers = [Input(sizes[0])]
+        for size in sizes[1:-1]:
             layers.append(Dense(size, activation=ReLU()))
         layers.append(Dense(sizes[-1], activation=Sigmoid()))
 
@@ -173,9 +173,9 @@ class NeuralNetwork(TensorNNObject):
         self,
         inputs: Tensor,
         desired_outputs: Tensor,
-        learning_rate: float = 0.001,
-        batch_size: int = 32,
         epochs: int = 5,
+        batch_size: int = 32,
+        learning_rate: Optional[float] = None,
         **kwargs
     ) -> None:
         """
@@ -207,7 +207,8 @@ class NeuralNetwork(TensorNNObject):
                 f"Inputs length: {len(inputs)}, desired_outputs length: {len(desired_outputs)}. "
             )
         
-        self.optimizer.set_lr(learning_rate)
+        if learning_rate is not None:
+            self.optimizer.set_lr(learning_rate)
 
         # number of training inputs have matching desired outputs
         training_inp_size = len(inputs)
@@ -261,13 +262,13 @@ class NeuralNetwork(TensorNNObject):
                     if debug.file and debug.file.update.get_value() == "batch":
                         self.update_log()
                     
-                    if kwargs["plot_data"] and kwargs["update"] == "batch":
+                    if kwargs.get("plot_data", False) and kwargs["update"] == "batch":
                         plot_data["loss"].append(loss)
 
                 if debug.file and debug.file.update.get_value() == "epoch":
                     self.update_log()
                 
-                if kwargs["plot_data"] and kwargs["update"] == "epoch":
+                if kwargs.get("plot_data", False) and kwargs["update"] == "epoch":
                     plot_data["loss"].append(loss)
 
             except KeyboardInterrupt:
@@ -277,7 +278,7 @@ class NeuralNetwork(TensorNNObject):
                 else:
                     raise KeyboardInterrupt
 
-        return plot_data if kwargs["plot_data"] else None
+        return plot_data if kwargs.get("plot_data", False) else None
 
     def update_log(self) -> None:
         """
@@ -337,6 +338,9 @@ class NeuralNetwork(TensorNNObject):
         :param optimizer: type of optimizer this network uses
         :raises InitializationError: num_inputs not specified to first layer
         """
+
+        if len(self.layers) < 2:
+            raise InitializationError("NeuralNetwork needs at least 2 layers")
 
         self.loss = loss
         self.optimizer = optimizer

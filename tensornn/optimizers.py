@@ -28,7 +28,6 @@ import numpy as np
 
 from .tensor import Tensor
 from .utils import TensorNNObject
-from .nn import NeuralNetwork
 
 __all__ = [
     "Optimizer",
@@ -41,7 +40,7 @@ class Optimizer(ABC, TensorNNObject):
     Base optimizer class. All optimizers should inherit from this.
     """
 
-    model: NeuralNetwork
+    model: TensorNNObject
     learning_rate: float
 
     def __init__(self, learning_rate: float = 0.01) -> None:
@@ -52,7 +51,7 @@ class Optimizer(ABC, TensorNNObject):
         """
         self.learning_rate = learning_rate
     
-    def register(self, model: NeuralNetwork) -> None:
+    def register(self, model: TensorNNObject) -> None:
         """
         Register the optimizer with the model.
 
@@ -114,7 +113,7 @@ class SGD(Optimizer):
         self.velocities_w = []
         self.velocities_b = []
     
-    def register(self, model: NeuralNetwork) -> None:
+    def register(self, model: TensorNNObject) -> None:
         super().register(model)
         for layer in model.layers:
             self.velocities_w.append(np.zeros_like(layer.weights))

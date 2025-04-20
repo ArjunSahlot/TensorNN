@@ -23,7 +23,7 @@ Layers need to be able to propagate their inputs forward.
 #
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -35,6 +35,7 @@ from .utils import atleast_2d, TensorNNObject
 __all__ = [
     "Layer",
     "Dense",
+    "Input",
 ]
 
 
@@ -68,16 +69,15 @@ class Layer(ABC, TensorNNObject):
         self.neurons = num_neurons
         self.activation: Activation = activation
 
-        self.input = False
         self.biases: Tensor = None
-        self.grad_weights: Tensor = None
-        self.grad_biases: Tensor = None
+        self.grad_weights: Tensor = 0
+        self.grad_biases: Tensor = 0
         self.weights = None  # Initialized on Layer.register()
 
     @abstractmethod
-    def forward(self, inputs: Tensor) -> Tensor:
+    def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
         """
-        Calculate a forwards pass of this layer, before and after activation.
+        Calculates and returns a forward pass of this layer, before and after activation.
 
         :param inputs: outputs from the previous layer
         :returns: the output calculated after this layer before and after activation
@@ -93,6 +93,25 @@ class Layer(ABC, TensorNNObject):
 
         :param prev: number of neurons in previous layer
         :returns: Nothing
+        """
+    
+    @abstractmethod
+    def backward(self, accumulated_gradient: Tensor) -> Tensor:
+        """
+        Backpropagation step. This is called when the loss is calculated and the gradients are
+        propagated back to this layer.
+
+        :param accumulated_gradient: the gradient from the next layer
+        :returns: the gradient for the previous layer
+        """
+
+    @abstractmethod
+    def step(self, adjust_w: Tensor, adjust_b: Tensor) -> None:
+        """
+        Update the weights and biases of this layer.
+
+        :param adjust_w: the adjustment to be made to the weights
+        :param adjust_b: the adjustment to be made to the biases
         """
 
     def reset_gradients(self) -> None:
@@ -131,19 +150,13 @@ class Dense(Layer):
         self.grad_weights: Tensor
         self.grad_biases: Tensor
     
-    def forward(self, inputs: Tensor) -> Tensor:
-        if self.input:
-            return inputs, self.activation.forward(inputs)
-
+    def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
         self.inputs = inputs
         values = inputs @ self.weights + self.biases
         self.calculated = values
         return values, self.activation.forward(values)
     
     def backward(self, accumulated_gradient: Tensor) -> Tensor:
-        if self.input:
-            return
-
         dc_da = accumulated_gradient
         da_dz = self.activation.derivative(self.calculated)
 
@@ -155,18 +168,43 @@ class Dense(Layer):
         return dc_dz @ self.weights.T
 
     def step(self, adjust_w: Tensor, adjust_b: Tensor) -> None:
-        if self.input:
-            return
-
         self.weights += adjust_w
         self.biases += adjust_b
 
     def register(self, prev: Optional[int]) -> None:
-        if prev is None:
-            self.input = True
-        else:
-            self.weights = Tensor(np.random.randn(prev, self.neurons))
-            self.biases = Tensor(np.random.randn(1, self.neurons))
+        self.weights = Tensor(np.random.randn(prev, self.neurons))
+        self.biases = Tensor(np.random.randn(1, self.neurons))
 
     def __repr__(self) -> str:
         return f"TensorNN.{self.__class__.__name__}(neurons={self.neurons}, activation={self.activation})"
+
+
+class Input(Layer):
+    """
+    Input layer. This is a dummy layer that just passes the input to the next layer.
+    This layer should be the first layer in every network to describe the input shape.
+    It is possible to give this layer an activation function if you want an activation
+    applied to the inputs every time the network is run. It could be useful in situations
+    where you want to normalize the inputs before passing them to the next layer.
+    """
+
+    def __init__(self, num_inputs: int, activation: Activation = NoActivation()) -> None:
+        """
+        Initialize input layer.
+
+        :param num_inputs: the number of inputs to this layer/number of outputs of this layer
+        :param activation: the activation function applied before the layer output is calculated
+        """
+        super().__init__(num_inputs, activation)
+
+    def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
+        return inputs, self.activation.forward(inputs)
+    
+    def register(self, prev: Optional[int]) -> None:
+        pass
+
+    def backward(self, accumulated_gradient: Tensor) -> Tensor:
+        return accumulated_gradient
+    
+    def step(self, adjust_w: Tensor, adjust_b: Tensor) -> None:
+        pass
