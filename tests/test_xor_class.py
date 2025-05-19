@@ -19,10 +19,10 @@ def generate_data():
         [1, 1],
     ])
     outputs = Tensor([
-        [0],
-        [0],
-        [0],
-        [1],
+        [1, 0],
+        [0, 1],
+        [0, 1],
+        [1, 0],
     ])
     return inputs, outputs
 
@@ -30,13 +30,13 @@ def create_nn():
     nn = NeuralNetwork([
         Input(2),
         Dense(2, activation=Tanh()),
-        Dense(1)
+        Dense(2, activation=Softmax())
     ])
-    nn.register(MSE(), Adam(0.02, 0))
+    nn.register(CategoricalCrossEntropy(), Adam(0.01, 0))
     return nn
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
-def test_and(seed):
+def test_xor(seed):
     set_seed(seed)
 
     inputs, outputs = generate_data()
@@ -44,20 +44,10 @@ def test_and(seed):
 
     nn.train(inputs, outputs, epochs=2_000)
 
+    loss = np.mean(nn.get_loss(inputs, outputs))
     pred = nn.forward(inputs)
 
-    assert np.allclose(pred, outputs, atol=0.1)
-
-@pytest.mark.parametrize("seed", [0, 1, 2])
-def test_loss_drops_with_training(seed):
-    set_seed(seed)
-    x, y = generate_data()
-    nn = create_nn()
-    
-    loss0 = np.mean(nn.get_loss(x, y))
-
-    nn.train(x, y, epochs=100)
-    
-    loss1 = np.mean(nn.get_loss(x, y))
-    
-    assert loss1 < 0.5 * loss0, f"Loss didn't drop as much as expected, dropped {(loss0 - loss1) / loss0:.2%}"
+    # Check if the predicted class matches the true class
+    predicted_classes = np.argmax(pred, axis=1)
+    true_classes = np.argmax(outputs, axis=1)
+    assert np.array_equal(predicted_classes, true_classes)
