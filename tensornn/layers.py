@@ -69,10 +69,10 @@ class Layer(ABC, TensorNNObject):
         self.neurons = num_neurons
         self.activation: Activation = activation
 
-        self.biases: Tensor = None
-        self.grad_weights: Tensor = 0
-        self.grad_biases: Tensor = 0
-        self.weights = None  # Initialized on Layer.register()
+        self.weights: Optional[Tensor] = None
+        self.biases: Optional[Tensor] = None
+        self.grad_weights: Tensor = Tensor(0)
+        self.grad_biases: Tensor = Tensor(0)
 
     @abstractmethod
     def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -94,7 +94,7 @@ class Layer(ABC, TensorNNObject):
         :param prev: number of neurons in previous layer
         :returns: Nothing
         """
-    
+
     @abstractmethod
     def backward(self, accumulated_gradient: Tensor) -> Tensor:
         """
@@ -132,6 +132,7 @@ class Dense(Layer):
         self,
         num_neurons: int,
         activation: Activation = NoActivation(),
+        parameter_init: tuple[str, str] = ("default", "default"),
         # zero_biases: bool = True,
     ) -> None:
         """
@@ -139,7 +140,7 @@ class Dense(Layer):
 
         :param num_neurons: the number of neurons in this layer/number of outputs of this layer
         :param activation: the activation function applied before the layer output is calculated
-        # :param zero_biases: whether or not the biases should be initialized to 0, if your network dies try setting this to False
+        :param parameter_init: the initialization method for the weights and biases.
         #TODO have stuff like zero_biases go in a dictionary like config or options
         """
         super().__init__(num_neurons, activation)
@@ -149,6 +150,8 @@ class Dense(Layer):
         self.calculated: Tensor
         self.grad_weights: Tensor
         self.grad_biases: Tensor
+        self.w_init: str = parameter_init[0]
+        self.b_init: str = parameter_init[1]
     
     def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
         self.inputs = inputs
@@ -159,6 +162,8 @@ class Dense(Layer):
     def backward(self, accumulated_gradient: Tensor) -> Tensor:
         dc_da = accumulated_gradient
         da_dz = self.activation.derivative(self.calculated)
+
+        batch_size = self.inputs.shape[0]
 
         dc_dz = dc_da * da_dz
 
@@ -171,9 +176,50 @@ class Dense(Layer):
         self.weights += adjust_w
         self.biases += adjust_b
 
-    def register(self, prev: Optional[int]) -> None:
-        self.weights = Tensor(np.random.randn(prev, self.neurons))
-        self.biases = Tensor(np.random.randn(1, self.neurons))
+    def register(self, prev: int) -> None:
+        match self.w_init.lower():
+            case "xavier_uniform" | "glorot_uniform" | "xavier" | "glorot":
+                limit = np.sqrt(6. / (prev + self.neurons))
+                self.weights = Tensor(np.random.uniform(-limit, limit, (prev, self.neurons)))
+            case "glorot_normal" | "xavier_normal":
+                std_dev = np.sqrt(2. / (prev + self.neurons))
+                self.weights = Tensor(np.random.randn(prev, self.neurons) * std_dev)
+            case "lecun_uniform" | "lecun":
+                limit = np.sqrt(3. / prev)
+                self.weights = Tensor(np.random.uniform(-limit, limit, (prev, self.neurons)))
+            case "lecun_normal":
+                std_dev = np.sqrt(1. / prev)
+                self.weights = Tensor(np.random.randn(prev, self.neurons) * std_dev)
+            case "he_normal" | "he" | "default":
+                std_dev = np.sqrt(2. / prev)
+                self.weights = Tensor(np.random.randn(prev, self.neurons) * std_dev)
+            case "he_uniform":
+                limit = np.sqrt(6. / prev)
+                self.weights = Tensor(np.random.uniform(-limit, limit, (prev, self.neurons)))
+            case "uniform":
+                limit = np.sqrt(6. / prev)
+                self.weights = Tensor(np.random.uniform(-limit, limit, (prev, self.neurons)))
+            case "normal":
+                std_dev = np.sqrt(2. / prev)
+                self.weights = Tensor(np.random.randn(prev, self.neurons) * std_dev)
+            case "random":
+                self.weights = Tensor(np.random.randn(prev, self.neurons))
+            case "zero":
+                self.weights = Tensor(np.zeros((prev, self.neurons)))
+            case "ones":
+                self.weights = Tensor(np.ones((prev, self.neurons)))
+            case _:
+                raise ValueError(f"Unknown weight initialization method: {self.w_init}")
+        
+        match self.b_init.lower():
+            case "zeros" | "default":
+                self.biases = Tensor(np.zeros((1, self.neurons)))
+            case "ones":
+                self.biases = Tensor(np.ones((1, self.neurons)))
+            case "random":
+                self.biases = Tensor(np.random.randn(1, self.neurons))
+            case _:
+                raise ValueError(f"Unknown bias initialization method: {self.b_init}")
 
     def __repr__(self) -> str:
         return f"TensorNN.{self.__class__.__name__}(neurons={self.neurons}, activation={self.activation})"
@@ -200,7 +246,7 @@ class Input(Layer):
     def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
         return inputs, self.activation.forward(inputs)
     
-    def register(self, prev: Optional[int]) -> None:
+    def register(self, prev: int) -> None:
         pass
 
     def backward(self, accumulated_gradient: Tensor) -> Tensor:
