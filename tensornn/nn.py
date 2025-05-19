@@ -81,7 +81,7 @@ class NeuralNetwork(TensorNNObject):
         layers = [Input(sizes[0])]
         for size in sizes[1:-1]:
             layers.append(Dense(size, activation=ReLU()))
-        layers.append(Dense(sizes[-1], activation=Sigmoid()))
+        layers.append(Dense(sizes[-1]))
 
         net = cls(layers)
         net.register(MSE(), SGD(learning_rate))
@@ -168,6 +168,35 @@ class NeuralNetwork(TensorNNObject):
             layer.reset_gradients()
         
         self.optimizer.reset()
+    
+    def get_minibatches(
+        self,
+        inputs: Tensor,
+        desired_outputs: Tensor,
+        batch_size: int,
+        shuffle: bool = False
+    ) -> List[Tuple[Tensor, Tensor]]:
+        """
+        Get the minibatches of the inputs and desired outputs.
+        This is used to split the inputs and desired outputs into smaller batches for training.
+        
+        :param inputs: the inputs to the network
+        :param desired_outputs: the desired outputs of the network
+        :param batch_size: the size of each batch
+        :param shuffle: whether to shuffle the inputs and desired outputs before splitting into batches
+        :returns: a list of tuples containing the inputs and desired outputs for each batch
+        """
+        if shuffle:
+            indices = np.arange(len(inputs))
+            np.random.shuffle(indices)
+            inputs = inputs[indices]
+            desired_outputs = desired_outputs[indices]
+
+        minibatches = []
+        for i in range(0, len(inputs), batch_size):
+            minibatches.append((inputs[i:i + batch_size], desired_outputs[i:i + batch_size]))
+
+        return minibatches
 
     def train(
         self,
@@ -211,14 +240,10 @@ class NeuralNetwork(TensorNNObject):
             self.optimizer.set_lr(learning_rate)
 
         # number of training inputs have matching desired outputs
-        training_inp_size = len(inputs)
-        batches = np.ceil(training_inp_size / batch_size)
-        minibatches = list(zip(np.array_split(inputs, batches), np.array_split(desired_outputs, batches)))
         if debug.info.summary:
             print(
-                f"Training data length: {training_inp_size}, "
-                f"inps: {len(inputs)},  desired_outs: {len(desired_outputs)}\n"
-                f"Total {len(minibatches)} minibatches, each with {len(minibatches[0][0])} inputs"
+                f"Training data length: {len(inputs)}\n"
+                f"Total {np.ceil(len(inputs)/batch_size)} minibatches, each with {batch_size} inputs"
             )
 
         if debug.file:
@@ -237,38 +262,53 @@ class NeuralNetwork(TensorNNObject):
         
         for epoch in epoch_range:
             try:
-                if debug.info.progress:
+                minibatches = self.get_minibatches(inputs, desired_outputs, batch_size, shuffle=True)
+                update_iter = (epoch+1) % kwargs.get("progress_update_every", 1) == 0
+                progress_bar = debug.info.progress and update_iter
+                if progress_bar:
                     description = f"Epoch {epoch+1}/{epochs}" if epochs != float("inf") else f"Epoch {epoch+1}"
                     pbar = trange(len(minibatches), desc=description, unit="batches")
+                    # print(f"\n{self.forward(inputs)[:4]}\n{desired_outputs[:4]}")
+                    # print(self.layers[1].weights)
+                    # print(self.layers[1].biases)
+                    # print(self.layers[2].weights)
+                    # print(self.layers[2].biases)
+                    # print(self.loss.calculate(self.forward(inputs), desired_outputs))
                 else:
                     pbar = range(len(minibatches))
+
+                num_output_features = self.layers[-1].neurons
+                acc_outs = np.empty((0, num_output_features))
+                acc_preds = np.empty((0, num_output_features))
                 for i in pbar:
                     in_batch, out_batch = minibatches[i]
 
                     # sets up all the inputs for the layers
                     pred = self.forward(in_batch)
 
-                    loss = self.loss.display(pred, out_batch)
+                    acc_outs = np.concatenate((acc_outs, out_batch), axis=0)
+                    acc_preds = np.concatenate((acc_preds, pred), axis=0)
 
                     # display loss
-                    if debug.info.progress:
-                        pbar.set_postfix({"Loss": loss})
+                    if progress_bar:
+                        loss = self.loss.calculate(acc_preds, acc_outs)
+                        pbar.set_postfix({"Loss": np.mean(loss)})
 
                     loss_deriv = self.loss.derivative(pred, out_batch)
                     self.backward(loss_deriv)
 
                     self.optimizer.step()
 
-                    if debug.file and debug.file.update.get_value() == "batch":
-                        self.update_log()
+                    if debug.file and debug.file.update.get_value() == "batch" and update_iter:
+                        self.update_log(epoch)
                     
-                    if kwargs.get("plot_data", False) and kwargs["update"] == "batch":
+                    if kwargs.get("plot_data", False) and kwargs["update"] == "batch" and update_iter:
                         plot_data["loss"].append(loss)
 
-                if debug.file and debug.file.update.get_value() == "epoch":
-                    self.update_log()
+                if debug.file and debug.file.update.get_value() == "epoch" and update_iter:
+                    self.update_log(epoch)
                 
-                if kwargs.get("plot_data", False) and kwargs["update"] == "epoch":
+                if kwargs.get("plot_data", False) and kwargs["update"] == "epoch" and update_iter:
                     plot_data["loss"].append(loss)
 
             except KeyboardInterrupt:
@@ -280,12 +320,12 @@ class NeuralNetwork(TensorNNObject):
 
         return plot_data if kwargs.get("plot_data", False) else None
 
-    def update_log(self) -> None:
+    def update_log(self, epoch) -> None:
         """
         Update the log file with the current weights, biases, and gradients of the network.
         """
 
-        output = ""
+        output = f"Epoch {epoch+1}:\n"
 
         for layer in self.layers[1:]:
             layer_out = str(layer).ljust(70) + "\t"
@@ -343,12 +383,22 @@ class NeuralNetwork(TensorNNObject):
             raise InitializationError("NeuralNetwork needs at least 2 layers")
 
         self.loss = loss
-        self.optimizer = optimizer
+        if isinstance(loss, CategoricalCrossEntropy) != isinstance(self.layers[-1].activation, Softmax):
+            raise InitializationError(
+                "Both CategoricalCrossEntropy and Softmax need to be used together. " +
+                (
+                    "Use Softmax as the activation function of the last layer "
+                    if not isinstance(self.layers[-1].activation, Softmax) else
+                    "Use CategoricalCrossEntropy as the loss function "
+                ) +
+                "to resolve this issue."
+            )
 
+        self.optimizer = optimizer
         self.optimizer.register(self)
 
         # register all layers
-        curr_neurons = None
+        curr_neurons = 0
         for layer in self.layers:
             layer.register(curr_neurons)
             curr_neurons = layer.neurons

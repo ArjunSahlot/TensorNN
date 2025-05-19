@@ -194,9 +194,10 @@ class Softmax(Activation):
         return Tensor(exp / np.sum(exp, axis=1, keepdims=True))
 
     def derivative(self, inputs: Tensor) -> Tensor:
-        raise NotImplementedError
-        # TODO: implement
-        return
+        # The derivative of softmax should be calculated in the CategoricalCrossEntropy
+        # loss function, this makes it much easier to calculate and doesn't have any
+        # downsides since both Softmax and CategoricalCrossEntropy should be used together.
+        return Tensor(np.ones(inputs.shape))
 
 
 class Sigmoid(Activation):

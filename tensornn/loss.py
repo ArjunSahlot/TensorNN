@@ -52,7 +52,7 @@ class Loss(ABC, TensorNNObject):
     @abstractmethod
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         """
-        The mean of all the loss values in this batch.
+        The loss function is used to calculate how off the predictions of the network are.
 
         :param pred: the prediction of the network
         :param desired: the desired values which the network should have gotten close to
@@ -68,15 +68,6 @@ class Loss(ABC, TensorNNObject):
         :param desired: the desired values which the network should have gotten close to
         :returns: the derivative of the loss function wrt the last layer of the network
         """
-    
-    def display(self, pred: Tensor, desired: Tensor) -> None:
-        """
-        Function to get the loss as a single value.
-
-        :param pred: the prediction of the network
-        :param desired: the desired values which the network should have gotten close to
-        """
-        return np.mean(self.calculate(pred, desired))
 
 
 class CategoricalCrossEntropy(Loss):
@@ -94,11 +85,10 @@ class CategoricalCrossEntropy(Loss):
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred = pred.clip(1e-15, 1 - 1e-15)  # prevent np.log(0)
-        loss = np.log(pred[..., desired])
-        return -loss
+        return -np.sum(desired * np.log(pred), axis=1)
 
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return -desired/pred.clip(1e-15, 1 - 1e-15)
+        return pred - desired
 
 CCE = CategoricalCrossEntropy
 
@@ -132,7 +122,7 @@ class MeanSquaredError(Loss):
     """
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
-        return np.square(pred - desired)
+        return np.mean(np.square(pred - desired), axis=1)
 
     def derivative(self, pred: Tensor, desired: Tensor) -> Tensor:
         return 2 * (pred - desired)
@@ -146,8 +136,7 @@ class RootMeanSquaredError(Loss):
     """
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
-        squared_error = np.square(pred - desired)
-        return np.sqrt(np.mean(squared_error))
+        return np.sqrt(np.mean(np.square(pred - desired), axis=1))
 
 RMSE = RootMeanSquaredError
 
@@ -158,8 +147,7 @@ class MeanAbsoluteError(Loss):
     """
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
-        abs_error = np.abs(pred - desired)
-        return np.mean(abs_error)
+        return np.mean(np.abs(pred - desired), axis=1)
 
 MAE = MeanAbsoluteError
 
@@ -172,7 +160,7 @@ class MeanSquaredLogarithmicError(Loss):
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == -1] = 1e-15 - 1
         squared_log_error = np.square(np.log(pred + 1) - np.log(desired + 1))
-        return np.mean(squared_log_error)
+        return np.mean(squared_log_error, axis=1)
 
 MSLE = MeanSquaredLogarithmicError
 
@@ -185,7 +173,7 @@ class Poisson(Loss):
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         pred[pred == 0] = 1e-15
         error = pred - desired * np.log(pred)
-        return np.mean(error)
+        return np.mean(error, axis=1)
 
 
 class SquaredHinge(Loss):
@@ -195,7 +183,7 @@ class SquaredHinge(Loss):
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
         error = 1 - pred * desired
-        return np.sum(np.square(np.maximum(0, error)))
+        return np.sum(np.square(np.maximum(0, error)), axis=1)
 
 SHL = SquaredHinge
 
@@ -206,7 +194,6 @@ class ResidualSumOfSquares(Loss):
     """
 
     def calculate(self, pred: Tensor, desired: Tensor) -> Tensor:
-        squared_error = np.square(pred - desired)
-        return np.sum(squared_error)
+        return np.sum(np.square(pred - desired), axis=1)
 
 RSS = ResidualSumOfSquares
