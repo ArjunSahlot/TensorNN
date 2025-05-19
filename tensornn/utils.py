@@ -67,14 +67,15 @@ def one_hot(values: Union[int, Iterable[int]], classes: int) -> Tensor:
 
     arr = []
 
-    if isinstance(values, int):
-        arr = np.zeros(classes, dtype=int)
-        arr[values] = 1
-    else:
-        if len(np.array(values).shape) > 1:
+    if isinstance(values, Iterable):
+        if np.array(values).ndim > 1:
             raise ValueError("Values for one-hot exceed 2 dimensions")
         arr = np.zeros((len(values), classes), dtype=int)
         arr[np.arange(len(values)), values] = 1
+    else:
+        arr = np.zeros(classes, dtype=int)
+        arr[values] = 1
+
     return arr
 
 

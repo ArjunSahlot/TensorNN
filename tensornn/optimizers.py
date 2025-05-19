@@ -32,6 +32,8 @@ from .utils import TensorNNObject
 __all__ = [
     "Optimizer",
     "SGD",
+    "RMSProp",
+    "Adam"
 ]
 
 
@@ -101,7 +103,7 @@ class SGD(Optimizer):
     velocities_w: list[Tensor]
     velocities_b: list[Tensor]
 
-    def __init__(self, learning_rate: float = 0.01, momentum: float = 0.9) -> None:
+    def __init__(self, learning_rate: float = 0.001, momentum: float = 0.9) -> None:
         """
         Initialize the optimizer.
 
@@ -112,7 +114,7 @@ class SGD(Optimizer):
         self.momentum = momentum
         self.velocities_w = []
         self.velocities_b = []
-    
+
     def register(self, model: TensorNNObject) -> None:
         super().register(model)
         for layer in model.layers:
@@ -121,6 +123,97 @@ class SGD(Optimizer):
 
     def step(self) -> None:
         for i, layer in enumerate(self.model.layers):
-            self.velocities_w[i] = self.momentum * self.velocities_w[i] - self.learning_rate * layer.grad_weights
-            self.velocities_b[i] = self.momentum * self.velocities_b[i] - self.learning_rate * layer.grad_biases
-            layer.step(self.velocities_w[i], self.velocities_b[i])
+            self.velocities_w[i] = self.momentum * self.velocities_w[i] + (1 - self.momentum) * layer.grad_weights
+            self.velocities_b[i] = self.momentum * self.velocities_b[i] + (1 - self.momentum) * layer.grad_biases
+            # print(layer.grad_weights, layer.grad_biases)
+            layer.step(-self.learning_rate*self.velocities_w[i], -self.learning_rate*self.velocities_b[i])
+
+
+class RMSProp(Optimizer):
+    """
+    Root Mean Square Propagation optimizer.
+    """
+
+    def __init__(self, learning_rate: float = 0.001, decay: float = 0.9, epsilon: float = 1e-8) -> None:
+        """
+        Initialize the optimizer.
+
+        :param learning_rate: the learning rate of the optimizer
+        :param decay: the decay rate of the optimizer
+        :param epsilon: the epsilon value of the optimizer
+        """
+        super().__init__(learning_rate)
+        self.decay = decay
+
+        self.acc_w = []
+        self.acc_b = []
+        self.epsilon = epsilon
+    
+    def register(self, model: TensorNNObject) -> None:
+        super().register(model)
+        for layer in model.layers:
+            self.acc_w.append(np.zeros_like(layer.weights))
+            self.acc_b.append(np.zeros_like(layer.biases))
+    
+    def step(self) -> None:
+        for i, layer in enumerate(self.model.layers):
+            self.acc_w[i] = self.decay * self.acc_w[i] + (1 - self.decay) * np.square(layer.grad_weights)
+            self.acc_b[i] = self.decay * self.acc_b[i] + (1 - self.decay) * np.square(layer.grad_biases)
+            w_off = -self.learning_rate * layer.grad_weights / (np.sqrt(self.acc_w[i]) + self.epsilon)
+            b_off = -self.learning_rate * layer.grad_biases / (np.sqrt(self.acc_b[i]) + self.epsilon)
+            layer.step(w_off, b_off)
+
+
+class Adam(Optimizer):
+    """
+    Adaptive Moment Estimation, or famously known as Adam, is the most widely used optimizer in the
+    machine learning community. By combining the ideas of momentum and RMSProp, people have found that Adam
+    works surprisingly well for a lot of situations and is able to converge faster than other optimizers.
+    """
+
+    def __init__(self, learning_rate: float = 0.001, momentum: float = 0.9, decay: float = 0.999, epsilon: float = 1e-8) -> None:
+        """
+        Initialize the optimizer.
+
+        :param learning_rate: the learning rate of the optimizer
+        :param momentum: the momentum of the optimizer
+        :param decay: the decay rate of the optimizer
+        :param epsilon: the epsilon value of the optimizer
+        """
+        super().__init__(learning_rate)
+
+        self.acc_w = []
+        self.acc_b = []
+        self.vel_w = []
+        self.vel_b = []
+        self.momentum = momentum
+        self.decay = decay
+        self.epsilon = epsilon
+
+        self.iter = 0
+
+    def register(self, model: TensorNNObject) -> None:
+        super().register(model)
+        for layer in model.layers:
+            self.acc_w.append(np.zeros_like(layer.weights))
+            self.acc_b.append(np.zeros_like(layer.biases))
+            self.vel_w.append(np.zeros_like(layer.weights))
+            self.vel_b.append(np.zeros_like(layer.biases))
+    
+    def step(self) -> None:
+        self.iter += 1
+        for i, layer in enumerate(self.model.layers):
+            self.vel_w[i] = self.momentum * self.vel_w[i] + (1 - self.momentum) * layer.grad_weights
+            self.vel_b[i] = self.momentum * self.vel_b[i] + (1 - self.momentum) * layer.grad_biases
+            self.acc_w[i] = self.decay * self.acc_w[i] + (1 - self.decay) * np.square(layer.grad_weights)
+            self.acc_b[i] = self.decay * self.acc_b[i] + (1 - self.decay) * np.square(layer.grad_biases)
+
+            # error correction
+            # self.vel_w[i] /= 1 - np.power(self.momentum, self.iter)
+            # self.vel_b[i] /= 1 - np.power(self.momentum, self.iter)
+            # self.acc_w[i] /= 1 - np.power(self.decay, self.iter)
+            # self.acc_b[i] /= 1 - np.power(self.decay, self.iter)
+
+            w_off = -self.learning_rate * self.vel_w[i] / (np.sqrt(self.acc_w[i]) + self.epsilon)
+            b_off = -self.learning_rate * self.vel_b[i] / (np.sqrt(self.acc_b[i]) + self.epsilon)
+            layer.step(w_off, b_off)
