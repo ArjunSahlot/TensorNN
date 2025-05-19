@@ -11,6 +11,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "line-profiler>=4.2.0",
+    "matplotlib>=3.10.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
 ]
