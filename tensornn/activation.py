@@ -43,6 +43,7 @@ __all__ = [
     "Swish",
     "NewtonsSerpentine",
     "Tanh",
+    "LecunTanh",
 ]
 
 
@@ -235,7 +236,6 @@ class Swish(Activation):
 
 class NewtonsSerpentine(Activation):
     """
-    Haven't seen it anywhere so I am not sure if this is good but seemed like a good candidate.
     NOTE: THIS IS NOT A GOOD CANDIDATE. Larger numbers result in a lower value, which means being
     large doesn't give importance. Do not use unless you want to have some fun ;)
 
@@ -280,7 +280,7 @@ class NewtonsSerpentine(Activation):
 
 class Tanh(Activation):
     """
-    TODO: add description
+    The tanh function is similar to the sigmoid function, but it is always between -1 and 1.
     """
 
     def forward(self, inputs: Tensor) -> Tensor:
@@ -289,3 +289,17 @@ class Tanh(Activation):
     def derivative(self, inputs: Tensor) -> Tensor:
         tanh = self.forward(inputs)
         return Tensor(1 - np.square(tanh))
+
+
+class LecunTanh(Activation):
+    """
+    The LeCun Tanh function is a scaled version of the tanh function, such that
+    LecunTanh(1) = 1 and LecunTanh(-1) = -1
+    """
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return Tensor(1.7159 * np.tanh(2/3 * inputs))
+
+    def derivative(self, inputs: Tensor) -> Tensor:
+        lecun_tanh = self.forward(inputs)
+        return Tensor(1.7159 * (2/3) * (1 - np.square(lecun_tanh)))
