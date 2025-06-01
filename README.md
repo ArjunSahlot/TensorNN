@@ -10,10 +10,6 @@
 
 **TensorNN** is a Python machine learning library built from scratch. It provides fundamental building blocks for creating and training neural networks.
 
-## ⚠️ Status: Under Heavy Development
-
-**Note:** This library is currently under heavy development and is considered unusable for production purposes.
-
 ---
 
 ## 📋 Table of Contents

@@ -225,6 +225,12 @@ class Dense(Layer):
         return f"TensorNN.{self.__class__.__name__}(neurons={self.neurons}, activation={self.activation})"
 
 
+class Convolutional(Layer):
+    """
+    Convolutional layer. This layer applies a convolution operation to the input.
+    It's useful for processing images or other grid-like data.
+    """
+
 class Input(Layer):
     """
     Input layer. This is a dummy layer that just passes the input to the next layer.
