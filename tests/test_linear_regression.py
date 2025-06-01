@@ -21,7 +21,7 @@ def create_nn():
         Input(1),
         Dense(1)
     ])
-    nn.register(MSE(), SGD(0.05, 0))
+    nn.register(MSE(), Adam(0.05))
     return nn
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
@@ -34,7 +34,7 @@ def test_linear_regression(seed):
     inputs, outputs = generate_data(10, weight, bias)
     nn = create_nn()
 
-    nn.train(inputs, outputs, epochs=1_000)
+    nn.train(inputs, outputs, epochs=100)
 
     pred = nn.forward(inputs)
 

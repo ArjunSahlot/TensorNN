@@ -43,6 +43,6 @@ def test_sine(seed):
 
     nn = create_nn()
     
-    nn.train(x_train, y_train, epochs=100)
+    nn.train(x_train, y_train, epochs=5)
 
     assert np.isclose(np.mean(nn.get_loss(x_test, y_test)), 0.0, atol=0.1)

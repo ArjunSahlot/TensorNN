@@ -32,7 +32,7 @@ def create_nn():
         Dense(2, activation=Tanh()),
         Dense(1)
     ])
-    nn.register(MSE(), Adam(0.02, 0))
+    nn.register(MSE(), Adam(0.02))
     return nn
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
@@ -42,7 +42,7 @@ def test_and(seed):
     inputs, outputs = generate_data()
     nn = create_nn()
 
-    nn.train(inputs, outputs, epochs=2_000)
+    nn.train(inputs, outputs, epochs=500)
 
     pred = nn.forward(inputs)
 
@@ -56,7 +56,7 @@ def test_loss_drops_with_training(seed):
     
     loss0 = np.mean(nn.get_loss(x, y))
 
-    nn.train(x, y, epochs=100)
+    nn.train(x, y, epochs=10)
     
     loss1 = np.mean(nn.get_loss(x, y))
     

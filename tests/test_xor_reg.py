@@ -35,10 +35,10 @@ def generate_data():
 def create_nn():
     nn = NeuralNetwork([
         Input(2),
-        Dense(2, activation=Tanh()),
+        Dense(4, activation=Tanh()),
         Dense(1)
     ])
-    nn.register(MSE(), Adam(0.01, 0))
+    nn.register(MSE(), Adam(0.01))
     return nn
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
@@ -48,7 +48,7 @@ def test_xor(seed):
     inputs, outputs = generate_data()
     nn = create_nn()
 
-    nn.train(inputs, outputs, epochs=1_000)
+    nn.train(inputs, outputs, epochs=100)
 
     loss = np.mean(nn.get_loss(inputs, outputs))
     pred = nn.forward(inputs)
