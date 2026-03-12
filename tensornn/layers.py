@@ -84,15 +84,13 @@ class Layer(ABC, TensorNNObject):
         """
 
     @abstractmethod
-    def register(self, prev: int) -> None:
+    def register(self, prev: tuple) -> None:
         """
         Number of inputs in the previous layer. This is called whenever the NeuralNetwork is
         registered(NeuralNetwork.register()) with the optimizer and loss, it calls this method
-        for all layers giving information to it. If your layer doesn't need this, you don't need
-        to implement this.
+        for all layers giving information to it.
 
-        :param prev: number of neurons in previous layer
-        :returns: Nothing
+        :param prev: the output shape of the previous layer, e.g. the input shape of the current layer
         """
 
     @abstractmethod
@@ -133,7 +131,6 @@ class Dense(Layer):
         num_neurons: int,
         activation: Activation = NoActivation(),
         parameter_init: tuple[str, str] = ("default", "default"),
-        # zero_biases: bool = True,
     ) -> None:
         """
         Initialize dense layer.
@@ -141,7 +138,6 @@ class Dense(Layer):
         :param num_neurons: the number of neurons in this layer/number of outputs of this layer
         :param activation: the activation function applied before the layer output is calculated
         :param parameter_init: the initialization method for the weights and biases.
-        #TODO have stuff like zero_biases go in a dictionary like config or options
         """
         super().__init__(num_neurons, activation)
         
@@ -163,8 +159,6 @@ class Dense(Layer):
         dc_da = accumulated_gradient
         da_dz = self.activation.derivative(self.calculated)
 
-        batch_size = self.inputs.shape[0]
-
         dc_dz = dc_da * da_dz
 
         self.grad_weights = self.inputs.T @ dc_dz
@@ -176,7 +170,7 @@ class Dense(Layer):
         self.weights += adjust_w
         self.biases += adjust_b
 
-    def register(self, prev: int) -> None:
+    def register(self, prev: int) -> tuple:
         match self.w_init.lower():
             case "xavier_uniform" | "glorot_uniform" | "xavier" | "glorot":
                 limit = np.sqrt(6. / (prev + self.neurons))
@@ -220,6 +214,8 @@ class Dense(Layer):
                 self.biases = Tensor(np.random.randn(1, self.neurons))
             case _:
                 raise ValueError(f"Unknown bias initialization method: {self.b_init}")
+        
+        return (self.neurons,)
 
     def __repr__(self) -> str:
         return f"TensorNN.{self.__class__.__name__}(neurons={self.neurons}, activation={self.activation})"
@@ -230,6 +226,57 @@ class Convolutional(Layer):
     Convolutional layer. This layer applies a convolution operation to the input.
     It's useful for processing images or other grid-like data.
     """
+
+    def __init__(self, num_filters: int, kernel_size: int, activation: Activation = NoActivation()) -> None:
+        pass
+
+
+class Flatten(Layer):
+    """
+    Flatten layer. This layer flattens the input tensor into a 2D tensor.
+    It's useful for transitioning from convolutional layers to fully connected layers.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
+        return inputs.reshape((inputs.shape[0], -1)), inputs.reshape((inputs.shape[0], -1))
+
+    def backward(self, accumulated_gradient: Tensor) -> Tensor:
+        return accumulated_gradient.reshape(self.input_shape)
+
+    def register(self, prev: tuple) -> tuple:
+        self.input_shape = prev
+        return (np.prod(prev),)
+
+    def step(self, adjust_w: Tensor, adjust_b: Tensor) -> None:
+        pass
+
+
+class Reshape(Layer):
+    """
+    Reshape layer. This layer reshapes the input tensor to the specified shape.
+    It's useful in situations such as transitioning from fully connected layers to convolutional layers.
+    """
+
+    def __init__(self, new_shape: tuple) -> None:
+        super().__init__()
+        self.new_shape = new_shape
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return inputs.reshape(self.new_shape)
+
+    def backward(self, accumulated_gradient: Tensor) -> Tensor:
+        return accumulated_gradient.reshape(self.input_shape)
+
+    def register(self, prev: tuple) -> tuple:
+        self.input_shape = prev
+        return self.new_shape
+
+    def step(self, adjust_w: Tensor, adjust_b: Tensor) -> None:
+        pass
+
 
 class Input(Layer):
     """
@@ -251,9 +298,9 @@ class Input(Layer):
 
     def forward(self, inputs: Tensor) -> Tuple[Tensor, Tensor]:
         return inputs, self.activation.forward(inputs)
-    
-    def register(self, prev: int) -> None:
-        pass
+
+    def register(self, prev: tuple) -> tuple:
+        return (self.neurons,)
 
     def backward(self, accumulated_gradient: Tensor) -> Tensor:
         return accumulated_gradient
