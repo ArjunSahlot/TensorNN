@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+
 from tensornn import *
 from tensornn.nn import *
 from tensornn.activation import *
@@ -59,16 +63,17 @@ def train_with_visualization(nn: NeuralNetwork, x_train: Tensor, y_train: Tensor
     while True:
         y_pred = nn.forward(x_train)
         loss = nn.loss.calculate(y_pred, y_train)
+        loss_value = float(np.mean(loss))
         loss_deriv = nn.loss.derivative(y_pred, y_train)
         nn.backward(loss_deriv)
         nn.optimizer.step()
 
-        loss_history.append(nn.loss.calculate(y_pred, y_train))
+        loss_history.append(loss_value)
 
         pred_vals = nn.forward(x_plot)
         pred_line.set_ydata(pred_vals)
 
-        ax.set_title(f"Epoch {epoch} - MSE: {loss:.6f}")
+        ax.set_title(f"Epoch {epoch} - MSE: {loss_value:.6f}")
 
         fig.canvas.draw()
         fig.canvas.flush_events()
